@@ -1,0 +1,26 @@
+const { contextBridge, ipcRenderer } = require("electron");
+
+contextBridge.exposeInMainWorld("api", {
+    // Get full inventory
+    getInventory: () => ipcRenderer.invoke("inventory:get"),
+
+    // Add item
+    addItem: (name, slug) =>
+        ipcRenderer.invoke("inventory:add", { name, slug }),
+
+    // Update quantity
+    updateQuantity: (slug, newQuantity) =>
+        ipcRenderer.invoke("inventory:updateQuantity", { slug, newQuantity }),
+
+    // Delete item
+    deleteItem: (slug) =>
+        ipcRenderer.invoke("inventory:delete", { slug }),
+
+    // Update all prices
+    updatePrices: () =>
+        ipcRenderer.invoke("inventory:updatePrices"),
+
+    // Get totals
+    getTotals: () =>
+        ipcRenderer.invoke("inventory:totals")
+});

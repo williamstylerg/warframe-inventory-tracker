@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Warframe Inventory Tracker</title>
+
+    <style>
+        body {
+            background: #111;
+            color: #eee;
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        h1 {
+            margin-bottom: 10px;
+        }
+
+        input, button {
+            padding: 8px;
+            margin: 5px;
+            border-radius: 4px;
+            border: none;
+        }
+
+        input {
+            width: 200px;
+        }
+
+        button {
+            background: #2a6df4;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #1e4db8;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: #222;
+        }
+
+        th, td {
+            padding: 10px;
+            border-bottom: 1px solid #333;
+            text-align: left;
+        }
+
+        th {
+            cursor: pointer;
+            background: #333;
+        }
+
+        tr:hover {
+            background: #2a2a2a;
+        }
+
+        .delete-btn {
+            background: #b82a2a;
+            color: white;
+            padding: 6px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .delete-btn:hover {
+            background: #8e1f1f;
+        }
+
+        .qty-input {
+            width: 60px;
+            background: #333;
+            color: #eee;
+            border: 1px solid #444;
+            padding: 4px;
+            border-radius: 4px;
+        }
+
+        #suggestions {
+            background:#222;
+            border:1px solid #333;
+            display:none;
+            position:absolute;
+            width:200px;
+            z-index: 10;
+        }
+
+        #suggestions div {
+            padding:6px;
+            cursor:pointer;
+        }
+
+        #suggestions div:hover {
+            background:#444;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Warframe Inventory Tracker</h1>
+
+    <div>
+        <input id="itemName" placeholder="Item Name" oninput="showSuggestions(this.value)">
+        <div id="suggestions"></div>
+
+        <input id="itemSlug" placeholder="Slug">
+
+        <button onclick="addItem()">Add Item</button>
+        <button onclick="updatePrices()">Update Prices</button>
+    </div>
+    
+    <div id="summaryBox" style="margin-left: 20px; font-size: 1.1em;">
+        <div><strong>Total Unique Items:</strong> <span id="totalUnique">0</span></div>
+        <div><strong>Total Platinum Value:</strong> <span id="totalPlat">0</span></div>
+    </div>
+
+    <table id="inventoryTable"></table>
+
+    <!-- Electron renderer script -->
+    <script src="dashboard.js"></script>
+</body>
+</html>
