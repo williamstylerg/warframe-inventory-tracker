@@ -121,7 +121,7 @@ function renderTable(rows) {
 
         html += `
         <tr>
-            <td class="item-name" onclick="showFarmInfo('${item.set}', '${item.type}')">${item.name}</td>
+            <td class="item-name" onclick="showFarmInfo(inventory[${rows.indexOf(item)}])">${item.name}</td>
             <td>${item.type}</td>
             <td>${item.rarity}</td>
             <td>${item.vaulted ? "Yes" : "No"}</td>
@@ -151,9 +151,10 @@ function renderTable(rows) {
 // ------------------------------
 // FARM INFO MODAL
 // ------------------------------
-async function showFarmInfo(set, type) {
-    const components = await window.api.getFarmInfo(set, type);
-    renderFarmModal(set, components);
+async function showFarmInfo(item) {
+    const lookupName = item.type === "Mod" ? item.name : item.set;
+    const components = await window.api.getFarmInfo(lookupName, item.type);
+    renderFarmModal(lookupName, components);
 }
 
 function renderFarmModal(setName, components) {
@@ -162,8 +163,21 @@ function renderFarmModal(setName, components) {
 
     if (!components || components.length === 0) {
         body.innerHTML = `<p>No farm data found for ${setName}.</p>`;
+        modal.style.display = "block";
+        return;
+    }
+
+    const isFlatDropsList = components[0] && components[0].relic !== undefined;
+
+    let html = `<h2>${setName}</h2>`;
+
+    if (isFlatDropsList) {
+        html += `<ul>`;
+        for (const drop of components) {
+            html += `<li>${drop.relic} — ${drop.chance}% (${drop.rarity})</li>`;
+        }
+        html += `</ul>`;
     } else {
-        let html = `<h2>${setName}</h2>`;
         for (const comp of components) {
             html += `<h3>${comp.name}</h3>`;
             if (!comp.drops || comp.drops.length === 0) {
@@ -176,9 +190,9 @@ function renderFarmModal(setName, components) {
                 html += `</ul>`;
             }
         }
-        body.innerHTML = html;
     }
 
+    body.innerHTML = html;
     modal.style.display = "block";
 }
 

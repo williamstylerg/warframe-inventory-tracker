@@ -75,6 +75,18 @@ function saveFarmCache(cache) {
 // Fetching Farm from WFCD API
 //-----------------------------
 
+async function fetchWithRetry(url, retries = 1) {
+    try {
+        return await axios.get(url);
+    } catch (err) {
+        if (retries > 0) {
+            await new Promise(r => setTimeout(r, 1000)); // wait 1 second
+            return fetchWithRetry(url, retries - 1);
+        }
+        throw err;
+    }
+}
+
 function summarizeDrops(drops) {
     const bestByRelic = {};
 
@@ -94,6 +106,43 @@ function summarizeDrops(drops) {
     // Return as an array, sorted by chance descending (best odds first)
     return Object.values(bestByRelic).sort((a, b) => b.chance - a.chance);
 }
+
+    // Fetch farm data for mods
+
+async function fetchModFarmData(modName) {
+    const cache = loadFarmCache();
+    const key = "mod:" + modName.trim().toLowerCase();
+    const maxAge = 1000 * 60 * 60 * 24 * 14;
+
+    if (cache[key] && (Date.now() - cache[key].fetchedAt) < maxAge) {
+        return cache[key].drops;
+    }
+
+    const url = `https://api.warframestat.us/mods/search/${encodeURIComponent(modName)}`;
+
+    try {
+        const response = await fetchWithRetry(url);
+        const results = response.data;
+
+        const exactMatches = results.filter(
+            r => r.name.trim().toLowerCase() === modName.trim().toLowerCase()
+        );
+        const matchesToUse = exactMatches.length > 0 ? exactMatches : results.slice(0, 1);
+
+        const allDrops = matchesToUse.flatMap(m => m.drops || []);
+        const drops = summarizeDrops(allDrops);
+
+        cache[key] = { drops, fetchedAt: Date.now() };
+        saveFarmCache(cache);
+        return drops;
+
+    } catch (err) {
+        console.log("Mod farm data fetch failed for", modName, err.message);
+        return cache[key]?.drops || [];
+    }
+}
+
+    // This calls the farm data from the com dev api
 
 function getEndpointForType(itemType) {
     if (itemType.includes("Warframe")) return "warframes";
@@ -119,7 +168,7 @@ async function fetchFarmData(setName, itemType) {
     const url = `https://api.warframestat.us/${endpoint}/search/${encodeURIComponent(setName)}`;
 
     try {
-        const response = await axios.get(url);
+        const response = await fetchWithRetry(url);
         const results = response.data;
 
         const exactMatch = results.find(
@@ -143,6 +192,43 @@ async function fetchFarmData(setName, itemType) {
         return cache[key]?.components || [];
     }
 }
+
+    // This calls the mods
+async function fetchModFarmData(modName) {
+    const cache = loadFarmCache();
+    const key = "mod:" + modName.trim().toLowerCase();
+    const maxAge = 1000 * 60 * 60 * 24 * 14;
+
+    if (cache[key] && (Date.now() - cache[key].fetchedAt) < maxAge) {
+        return cache[key].drops;
+    }
+
+    const url = `https://api.warframestat.us/mods/search/${encodeURIComponent(modName)}`;
+
+    try {
+        const response = await axios.get(url);
+        const results = response.data;
+
+        // Mods can have multiple entries with the exact same name (mastery-rank drain tiers)
+        // Combine drops across all exact matches rather than picking just one
+        const exactMatches = results.filter(
+            r => r.name.trim().toLowerCase() === modName.trim().toLowerCase()
+        );
+        const matchesToUse = exactMatches.length > 0 ? exactMatches : results.slice(0, 1);
+
+        const allDrops = matchesToUse.flatMap(m => m.drops || []);
+        const drops = summarizeDrops(allDrops);
+
+        cache[key] = { drops, fetchedAt: Date.now() };
+        saveFarmCache(cache);
+        return drops;
+
+    } catch (err) {
+        console.log("Mod farm data fetch failed for", modName, err.message);
+        return cache[key]?.drops || [];
+    }
+}
+
 // Load inventory
 function loadInventory() {
     ensureInventoryFile();
@@ -339,6 +425,9 @@ ipcMain.handle("inventory:add", async (event, { name, slug }) => {
 // Get Farm Info
 
 ipcMain.handle("item:getFarmInfo", async (event, { set, type }) => {
+    if (type === "Mod") {
+        return await fetchModFarmData(set);
+    }
     return await fetchFarmData(set, type);
 });
 
