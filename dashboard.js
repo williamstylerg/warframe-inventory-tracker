@@ -157,6 +157,18 @@ async function showFarmInfo(item) {
     renderFarmModal(lookupName, components);
 }
 
+// Listener for closing popups
+document.getElementById("farmModal").addEventListener("click", (event) => {
+    if (event.target.id === "farmModal") {
+        closeFarmModal();
+    }
+});
+document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+        closeFarmModal();
+    }
+});
+
 function renderFarmModal(setName, components) {
     const modal = document.getElementById("farmModal");
     const body = document.getElementById("farmModalBody");
