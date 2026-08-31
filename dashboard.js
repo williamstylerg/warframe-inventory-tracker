@@ -24,6 +24,36 @@ async function refreshInventory() {
     renderTable(inventory);
 }
 
+// ------------------------------
+// COMBINE SET
+// ------------------------------
+
+async function combineSet() {
+    const setName = document.getElementById("combineSetName").value.trim();
+    if (!setName) {
+        alert("Enter a set name");
+        return;
+    }
+
+    const result = await window.api.combineSet(setName);
+
+    if (!result.success) {
+        alert(result.reason);
+        return;
+    }
+
+    alert(`Combined ${result.setsCreated} set(s) of ${setName}.`);
+
+    inventory = await window.api.getInventory();
+    renderTable(inventory);
+    await refreshTotals();
+
+    const tracker = await window.api.getBuildTracker();
+    renderBuildTracker(tracker);
+
+    document.getElementById("combineSetName").value = "";
+}
+
 
 // ------------------------------
 // REFRESH TOTALS
@@ -42,6 +72,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     const tracker = await window.api.getBuildTracker();
     renderBuildTracker(tracker);
 });
+
+// Logic for the sidebar
+function switchView(viewName) {
+    document.querySelectorAll(".view").forEach(el => el.style.display = "none");
+    document.getElementById("view-" + viewName).style.display = "block";
+
+    document.querySelectorAll(".nav-btn").forEach(btn => btn.classList.remove("active"));
+    event.target.classList.add("active");
+}
 
 // ------------------------------
 // ADD ITEM

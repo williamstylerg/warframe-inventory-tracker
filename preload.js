@@ -36,5 +36,8 @@ contextBridge.exposeInMainWorld("api", {
         ipcRenderer.invoke("buildTracker:get"),
 
     removeFromBuildTracker: (name) =>
-        ipcRenderer.invoke("buildTracker:remove", { name })
+        ipcRenderer.invoke("buildTracker:remove", { name }),
+
+    combineSet: (setName) =>
+        ipcRenderer.invoke("inventory:combineSet", { setName })
 });

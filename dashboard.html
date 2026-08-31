@@ -5,11 +5,51 @@
     <title>Warframe Inventory Tracker</title>
 
     <style>
+.app-layout {
+    display: flex;
+    height: 100vh;
+}
+
+.sidebar {
+    width: 200px;
+    background: #1a1a1a;
+    padding: 20px;
+    flex-shrink: 0;
+    border-right: 1px solid #333;
+}
+
+.sidebar h1 {
+    font-size: 1.2em;
+    margin-bottom: 20px;
+}
+
+.nav-btn {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    margin: 4px 0;
+    padding: 10px;
+}
+
+.nav-btn:hover {
+    background: #2a2a2a;
+}
+
+.nav-btn.active {
+    background: #2a6df4;
+}
+
+.content {
+    flex-grow: 1;
+    padding: 20px;
+    overflow-y: auto;
+}
         body {
             background: #111;
             color: #eee;
             font-family: Arial, sans-serif;
-            margin: 20px;
+            margin: 0;
         }
 
         h1 {
@@ -109,32 +149,46 @@
 
 <body>
 
-    <h1>Warframe Inventory Tracker</h1>
+    <div class="app-layout">
+        <nav class="sidebar">
+            <h1>Warframe Tracker</h1>
+            <button class="nav-btn active" onclick="switchView('price')">Price Tracker</button>
+            <button class="nav-btn" onclick="switchView('build')">Build Tracker</button>
+        </nav>
 
-    <div>
-        <input id="itemName" placeholder="Item Name" oninput="showSuggestions(this.value)">
-        <div id="suggestions"></div>
+        <main class="content">
 
-        <input id="itemSlug" placeholder="Slug">
+            <div id="view-price" class="view">
+                <div>
+                    <input id="itemName" placeholder="Item Name" oninput="showSuggestions(this.value)">
+                    <div id="suggestions"></div>
 
-        <button onclick="addItem()">Add Item</button>
-        <button onclick="updatePrices()">Update Prices</button>
-    </div>
-    
-    <div id="summaryBox" style="margin-left: 20px; font-size: 1.1em;">
-        <div><strong>Total Unique Items:</strong> <span id="totalUnique">0</span></div>
-        <div><strong>Total Platinum Value:</strong> <span id="totalPlat">0</span></div>
-    </div>
+                    <input id="itemSlug" placeholder="Slug">
 
-    <table id="inventoryTable"></table>
+                    <button onclick="addItem()">Add Item</button>
+                    <button onclick="updatePrices()">Update Prices</button>
+                    <input id="combineSetName" placeholder="Set name (e.g. Ember Prime)">
+                    <button onclick="combineSet()">Combine Set</button>
+                </div>
 
-    <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #333;">
-        <h2>Build Tracker</h2>
-        <input id="buildTrackerName" placeholder="Item Name" oninput="showBuildTrackerSuggestions(this.value)">
-        <div id="buildTrackerSuggestions" style="background:#222; border:1px solid #333; display:none; position:absolute; width:200px; z-index: 10;"></div>
-        <button onclick="addItemToBuildTracker()">Add to Build Tracker</button>
+                <div id="summaryBox" style="margin-left: 20px; font-size: 1.1em;">
+                    <div><strong>Total Unique Items:</strong> <span id="totalUnique">0</span></div>
+                    <div><strong>Total Platinum Value:</strong> <span id="totalPlat">0</span></div>
+                </div>
 
-        <table id="buildTrackerTable" style="margin-top: 10px;"></table>
+                <table id="inventoryTable"></table>
+            </div>
+
+            <div id="view-build" class="view" style="display:none;">
+                <h2>Build Tracker</h2>
+                <input id="buildTrackerName" placeholder="Item Name" oninput="showBuildTrackerSuggestions(this.value)">
+                <div id="buildTrackerSuggestions" style="background:#222; border:1px solid #333; display:none; position:absolute; width:200px; z-index: 10;"></div>
+                <button onclick="addItemToBuildTracker()">Add to Build Tracker</button>
+
+                <table id="buildTrackerTable" style="margin-top: 10px;"></table>
+            </div>
+
+        </main>
     </div>
 
     <div id="farmModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7);">

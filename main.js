@@ -265,11 +265,77 @@ function saveInventory(inventory) {
     fs.writeFileSync(inventoryPath, JSON.stringify(inventory, null, 2));
 }
 
+// combine set logic
+async function combineSetComponents(setName) {
+    let inventory = loadInventory();
+
+    // Get this set's required components (reuses your existing farm-data cache)
+    const components = await fetchFarmData(setName, "Warframe Part");
+
+    // Only real trackable parts have ducats — filters out things like Orokin Cell
+    const requiredParts = components.filter(c => c.ducats !== undefined);
+
+    if (requiredParts.length === 0) {
+        return { success: false, reason: "No trackable components found for this set." };
+    }
+
+    // For each required part, find the matching inventory item and its quantity
+    const partEntries = requiredParts.map(part => {
+        const fullName = `${setName} ${part.name}`;
+        const key = normalizeName(fullName);
+        const invItem = inventory.find(i => normalizeName(i.name) === key);
+        return { fullName, invItem, quantity: invItem ? invItem.quantity : 0 };
+    });
+
+    // How many complete sets can we build? Limited by the scarcest component.
+    const completeSets = Math.min(...partEntries.map(p => p.quantity));
+
+    if (completeSets < 1) {
+        return { success: false, reason: "Not all components are owned yet." };
+    }
+
+    // Decrement/remove each component by the number of sets being combined
+    for (const part of partEntries) {
+        part.invItem.quantity -= completeSets;
+    }
+    inventory = inventory.filter(i => i.quantity > 0);
+
+    // Find or create the merged set entry
+    const setKey = normalizeName(setName + " Set");
+    let setEntry = inventory.find(i => normalizeName(i.name) === setKey);
+
+    // Resolve the set's own market slug for pricing
+    const setSlug = setName.trim().toLowerCase().replace(/\s+/g, "_") + "_set";
+
+    if (setEntry) {
+        setEntry.quantity += completeSets;
+    } else {
+        setEntry = {
+            name: `${setName} Set`,
+            slug: setSlug,
+            quantity: completeSets,
+            price: 0,
+            type: "Warframe Part",
+            rarity: "Unknown",
+            vaulted: false,
+            set: setName,
+            lastUpdated: Date.now()
+        };
+        inventory.push(setEntry);
+    }
+
+    setEntry.price = await fetchPriceForSlug(setSlug);
+    setEntry.lastUpdated = Date.now();
+
+    saveInventory(inventory);
+    return { success: true, setsCreated: completeSets, inventory };
+}
+
 // Create the main window
 function createWindow() {
     mainWindow = new BrowserWindow({
-        width: 1000,
-        height: 700,
+        width: 1400,
+        height: 800,
         webPreferences: {
             preload: path.join(__dirname, "preload.js")
         },
@@ -404,6 +470,11 @@ function saveBuildTracker(list) {
 // ------------------------------
 // IPC handlers
 // ------------------------------
+
+// Combine components
+ipcMain.handle("inventory:combineSet", async (event, { setName }) => {
+    return await combineSetComponents(setName);
+});
 
 // Get full inventory
 ipcMain.handle("inventory:get", () => loadInventory());
