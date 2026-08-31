@@ -561,6 +561,39 @@ ipcMain.handle("buildTracker:add", (event, { name, set, type, marketSlug, tradab
     return tracker;
 });
 
+ipcMain.handle("buildTracker:checkPart", (event, { setName, partName }) => {
+    let tracker = loadBuildTracker();
+    const key = normalizeName(setName);
+
+    const entry = tracker.find(i => normalizeName(i.name) === key);
+
+    if (entry) {
+        if (!entry.obtainedParts) {
+            entry.obtainedParts = [];
+        }
+        if (!entry.obtainedParts.includes(partName)) {
+            entry.obtainedParts.push(partName);
+        }
+        saveBuildTracker(tracker);
+    }
+
+    return tracker;
+});
+
+ipcMain.handle("buildTracker:uncheckPart", (event, { setName, partName }) => {
+    let tracker = loadBuildTracker();
+    const key = normalizeName(setName);
+
+    const entry = tracker.find(i => normalizeName(i.name) === key);
+
+    if (entry && entry.obtainedParts) {
+        entry.obtainedParts = entry.obtainedParts.filter(p => p !== partName);
+        saveBuildTracker(tracker);
+    }
+
+    return tracker;
+});
+
 // Get full build tracker list
 ipcMain.handle("buildTracker:get", () => loadBuildTracker());
 

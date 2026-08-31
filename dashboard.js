@@ -286,6 +286,28 @@ async function addToBuildTracker(name, set, type) {
     return tracker;
 }
 
+async function checkOffComponent(setName, partName, isPrime, itemCategory) {
+    if (isPrime) {
+        const fullName = `${setName} ${partName}`;
+        const slugBase = fullName.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
+
+        // Blueprint component itself: no suffix needed (it already ends in "blueprint")
+        // Warframe parts (Chassis/Neuroptics/Systems): need "_blueprint" appended
+        // Weapon parts (Barrel/Receiver/Stock/etc.): no suffix needed
+        const needsSuffix = partName !== "Blueprint" && itemCategory === "Warframe Part";
+        const slug = needsSuffix ? slugBase + "_blueprint" : slugBase;
+
+        inventory = await window.api.addItem(fullName, slug);
+        renderTable(inventory);
+        await refreshTotals();
+    } else {
+        await window.api.checkBuildTrackerPart(setName, partName);
+    }
+
+    const tracker = await window.api.getBuildTracker();
+    await renderBuildTracker(tracker);
+}
+
 let selectedBuildTrackerItem = null; // holds {name, type} once picked from suggestions
 
 function showBuildTrackerSuggestions(value) {
@@ -332,9 +354,31 @@ function isTrackableComponent(component, itemCategory) {
     return component.drops && component.drops.length > 0;
 }
 
+async function uncheckOffComponent(setName, partName, isPrime) {
+    if (isPrime) {
+        const fullName = `${setName} ${partName}`;
+        const existingItem = inventory.find(
+            i => normalizeNameClient(i.name) === normalizeNameClient(fullName)
+        );
+        if (existingItem) {
+            inventory = await window.api.deleteItem(existingItem.slug);
+            renderTable(inventory);
+            await refreshTotals();
+        }
+    } else {
+        await window.api.uncheckBuildTrackerPart(setName, partName);
+    }
+
+    const tracker = await window.api.getBuildTracker();
+    await renderBuildTracker(tracker);
+}
+
 async function renderBuildTracker(rows) {
     buildTracker = rows;
     const container = document.getElementById("buildTrackerTable");
+    const scrollContainer = document.querySelector(".content");
+    const scrollPos = scrollContainer.scrollTop;
+
     container.innerHTML = "<p>Loading...</p>";
 
     let html = "";
@@ -353,23 +397,42 @@ async function renderBuildTracker(rows) {
         } else {
             let allOwned = true;
 
-            html += `<ul class="component-checklist">`;
-            for (const part of requiredParts) {
+        html += `<ul class="component-checklist">`;
+        for (const part of requiredParts) {
+            const isPrime = part.ducats !== undefined;
+            let owned;
+
+            if (isPrime) {
                 const fullName = `${trackedSet.name} ${part.name}`;
-                const owned = inventory.some(
+                owned = inventory.some(
                     invItem => normalizeNameClient(invItem.name) === normalizeNameClient(fullName) && invItem.quantity > 0
                 );
-                if (!owned) allOwned = false;
-
-                html += `<li>
-                    <input type="checkbox" disabled ${owned ? "checked" : ""}>
-                    ${part.name}
-                </li>`;
+            } else {
+                owned = (trackedSet.obtainedParts || []).includes(part.name);
             }
-            html += `</ul>`;
+
+            if (!owned) allOwned = false;
+
+            const safeSetName = trackedSet.name.replace(/'/g, "\\'");
+            const safePartName = part.name.replace(/'/g, "\\'");
+
+            html += `<li>
+                <input type="checkbox" ${owned ? "checked" : ""}
+                    onchange="this.blur(); this.checked ? checkOffComponent('${safeSetName}', '${safePartName}', ${isPrime}, '${trackedSet.type}') : uncheckOffComponent('${safeSetName}', '${safePartName}', ${isPrime})">
+                ${part.name}
+            </li>`;
+        }
+        html += `</ul>`;
 
             if (allOwned) {
-                html += `<button onclick="combineSetFromPanel('${trackedSet.name.replace(/'/g, "\\'")}')">Combine Set</button>`;
+                const isPrimeSet = requiredParts.some(p => p.ducats !== undefined);
+                const safeSetName = trackedSet.name.replace(/'/g, "\\'");
+
+                if (isPrimeSet) {
+                    html += `<button onclick="combineSetFromPanel('${safeSetName}')">Combine Set</button>`;
+                } else {
+                    html += `<button onclick="craftedRemove('${safeSetName}')">I've Crafted This — Remove</button>`;
+                }
             }
         }
 
@@ -378,6 +441,7 @@ async function renderBuildTracker(rows) {
     }
 
     container.innerHTML = html || "<p>No sets being tracked yet.</p>";
+    scrollContainer.scrollTop = scrollPos;
 }
 
 async function combineSetFromPanel(setName) {
@@ -395,6 +459,11 @@ async function combineSetFromPanel(setName) {
     await refreshTotals();
 
     const tracker = await window.api.getBuildTracker();
+    await renderBuildTracker(tracker);
+}
+
+async function craftedRemove(setName) {
+    const tracker = await window.api.removeFromBuildTracker(setName);
     await renderBuildTracker(tracker);
 }
 
