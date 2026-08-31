@@ -26,5 +26,15 @@ contextBridge.exposeInMainWorld("api", {
 
     // Farm Data
     getFarmInfo: (set, type) =>
-        ipcRenderer.invoke("item:getFarmInfo", { set, type })
+        ipcRenderer.invoke("item:getFarmInfo", { set, type }),
+
+    // Build Tracker
+    addToBuildTracker: (item) =>
+    ipcRenderer.invoke("buildTracker:add", item),
+
+    getBuildTracker: () =>
+        ipcRenderer.invoke("buildTracker:get"),
+
+    removeFromBuildTracker: (name) =>
+        ipcRenderer.invoke("buildTracker:remove", { name })
 });

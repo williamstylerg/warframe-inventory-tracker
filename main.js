@@ -281,7 +281,11 @@ function createWindow() {
 
 // Normalize item names (remove " Blueprint")
 function normalizeName(name) {
-    return name.trim().toLowerCase().replace(" blueprint", "");
+    return name
+        .trim()
+        .toLowerCase()
+        .replace(/\s+blueprint$/i, "")   // strip trailing "blueprint", any casing
+        .replace(/\s+/g, " ");            // collapse multiple spaces into one
 }
 
 // Fetch price from Warframe Market v2 orders endpoint
@@ -372,6 +376,32 @@ function inferRarityFromTags(tags) {
 }
 
 // ------------------------------
+// Build Tracker storage
+// ------------------------------
+
+const buildTrackerPath = path.join(app.getPath("userData"), "buildTracker.json");
+
+function ensureBuildTrackerFile() {
+    if (!fs.existsSync(buildTrackerPath)) {
+        fs.writeFileSync(buildTrackerPath, "[]");
+    }
+}
+
+function loadBuildTracker() {
+    ensureBuildTrackerFile();
+    try {
+        const data = fs.readFileSync(buildTrackerPath, "utf8");
+        return JSON.parse(data);
+    } catch {
+        return [];
+    }
+}
+
+function saveBuildTracker(list) {
+    fs.writeFileSync(buildTrackerPath, JSON.stringify(list, null, 2));
+}
+
+// ------------------------------
 // IPC handlers
 // ------------------------------
 
@@ -394,9 +424,11 @@ ipcMain.handle("inventory:add", async (event, { name, slug }) => {
         return parts.length > 1 ? parts[0] + " " + parts[1] : parts[0];
     })();
 
+    const itemType = inferTypeFromTags(tags);
+
     if (existing) {
         existing.quantity += 1;
-        existing.type = inferTypeFromTags(tags);
+        existing.type = itemType;
         existing.rarity = inferRarityFromTags(tags);
         existing.vaulted = tags.includes("vaulted");
         existing.set = setName;
@@ -406,7 +438,7 @@ ipcMain.handle("inventory:add", async (event, { name, slug }) => {
             slug: resolvedSlug,
             quantity: 1,
             price: 0,
-            type: inferTypeFromTags(tags),
+            type: itemType,
             rarity: inferRarityFromTags(tags),
             vaulted: tags.includes("vaulted"),
             set: setName,
@@ -419,7 +451,64 @@ ipcMain.handle("inventory:add", async (event, { name, slug }) => {
     existing.lastUpdated = Date.now();
 
     saveInventory(inventory);
+
+    // Direction 1: keep build tracker in sync — upsert this item as tradable
+    let tracker = loadBuildTracker();
+    const trackerKey = normalizeName(existing.name);
+    const trackerExisting = tracker.find(i => normalizeName(i.name) === trackerKey);
+
+    if (!trackerExisting) {
+        tracker.push({
+            name: existing.name,
+            set: existing.set,
+            type: existing.type,
+            marketSlug: existing.slug,
+            tradable: true
+        });
+        saveBuildTracker(tracker);
+    } else if (!trackerExisting.tradable) {
+        // Item was added to build tracker before it was known to be tradable — correct it now
+        trackerExisting.marketSlug = existing.slug;
+        trackerExisting.tradable = true;
+        saveBuildTracker(tracker);
+    }
+
     return inventory;
+});
+
+// Add item to build tracker (renderer determines tradable/marketSlug before calling this)
+ipcMain.handle("buildTracker:add", (event, { name, set, type, marketSlug, tradable }) => {
+    let tracker = loadBuildTracker();
+    const key = normalizeName(name);
+
+    const existing = tracker.find(i => normalizeName(i.name) === key);
+
+    if (!existing) {
+        tracker.push({
+            name,
+            set,
+            type,
+            marketSlug: marketSlug || null,
+            tradable: !!tradable
+        });
+        saveBuildTracker(tracker);
+    }
+
+    return tracker;
+});
+
+// Get full build tracker list
+ipcMain.handle("buildTracker:get", () => loadBuildTracker());
+
+// Remove item from build tracker
+ipcMain.handle("buildTracker:remove", (event, { name }) => {
+    let tracker = loadBuildTracker();
+    const key = normalizeName(name);
+
+    tracker = tracker.filter(i => normalizeName(i.name) !== key);
+    saveBuildTracker(tracker);
+
+    return tracker;
 });
 
 // Get Farm Info

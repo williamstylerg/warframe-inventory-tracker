@@ -5,7 +5,7 @@ let allItems = [];        // autocomplete list (from Warframe Market API)
 let inventory = [];       // current inventory rows
 let sortColumn = null;
 let sortAsc = true;
-
+let wfcdItems = []; // WFCD catalog for build-tracker autocomplete
 
 // ------------------------------
 // INITIALIZATION
@@ -34,6 +34,14 @@ async function refreshTotals() {
     document.getElementById("totalPlat").innerText = totals.totalPlat;
 }
 
+// Load build tracker on startup
+
+document.addEventListener("DOMContentLoaded", async () => {
+    await refreshInventory();
+    await refreshTotals();
+    const tracker = await window.api.getBuildTracker();
+    renderBuildTracker(tracker);
+});
 
 // ------------------------------
 // ADD ITEM
@@ -50,6 +58,9 @@ async function addItem() {
     inventory = await window.api.addItem(name, slug);
     renderTable(inventory);
     await refreshTotals();
+
+    const tracker = await window.api.getBuildTracker();
+    renderBuildTracker(tracker);
 
     document.getElementById("itemName").value = "";
     document.getElementById("itemSlug").value = "";
@@ -214,6 +225,162 @@ function closeFarmModal() {
 
 
 // ------------------------------
+// BUILD TRACKER
+// ------------------------------
+
+async function addToBuildTracker(name, set, type) {
+    const normalized = name.trim().toLowerCase();
+
+    // Check if this name matches something on warframe.market
+    const marketMatch = allItems.find(
+        i => i.name.trim().toLowerCase() === normalized
+    );
+
+    const tracker = await window.api.addToBuildTracker({
+        name,
+        set,
+        type,
+        marketSlug: marketMatch ? marketMatch.slug : null,
+        tradable: !!marketMatch
+    });
+
+    return tracker;
+}
+
+let selectedBuildTrackerItem = null; // holds {name, type} once picked from suggestions
+
+function showBuildTrackerSuggestions(value) {
+    const box = document.getElementById("buildTrackerSuggestions");
+
+    if (!value.trim()) {
+        box.style.display = "none";
+        return;
+    }
+
+    const v = value.toLowerCase();
+    const matches = wfcdItems.filter(i => i.name.toLowerCase().includes(v)).slice(0, 10);
+
+    if (matches.length === 0) {
+        box.style.display = "none";
+        return;
+    }
+
+    box.innerHTML = matches
+        .map(m => {
+            const safeName = m.name.replace(/'/g, "\\'");
+            return `<div onclick="pickBuildTrackerSuggestion('${safeName}', '${m.type}')">${m.name}</div>`;
+        })
+        .join("");
+
+    box.style.display = "block";
+}
+
+let buildTracker = []; // current build tracker list, mirrors the `inventory` global pattern
+
+function renderBuildTracker(rows) {
+    buildTracker = rows;
+    const table = document.getElementById("buildTrackerTable");
+
+    let html = `
+        <tr>
+            <th>Name</th>
+            <th>Set</th>
+            <th>Type</th>
+            <th>Obtained</th>
+            <th>Tradable</th>
+            <th>Action</th>
+            <th>Remove</th>
+        </tr>
+    `;
+
+    for (const item of rows) {
+        const isObtained = inventory.some(
+            invItem => normalizeNameClient(invItem.name) === normalizeNameClient(item.name) && invItem.quantity > 0
+        );
+
+        const actionCell = item.tradable && !isObtained
+            ? `<button onclick="promoteToInventory('${item.name.replace(/'/g, "\\'")}', '${item.marketSlug}')">Add to Price Tracker</button>`
+            : "";
+
+        html += `
+        <tr>
+            <td class="item-name" onclick="showFarmInfo(${JSON.stringify(item).replace(/"/g, "&quot;")})">${item.name}</td>
+            <td>${item.set}</td>
+            <td>${item.type}</td>
+            <td>${isObtained ? "Yes" : "No"}</td>
+            <td>${item.tradable ? "Yes" : "No"}</td>
+            <td>${actionCell}</td>
+            <td>
+                <button class="delete-btn" onclick="removeItemFromBuildTracker('${item.name.replace(/'/g, "\\'")}')">X</button>
+            </td>
+        </tr>
+        `;
+    }
+
+    table.innerHTML = html;
+}
+
+async function promoteToInventory(name, slug) {
+    inventory = await window.api.addItem(name, slug);
+    renderTable(inventory);
+    await refreshTotals();
+
+    const tracker = await window.api.getBuildTracker();
+    renderBuildTracker(tracker);
+}
+
+// The normalize name function is duplicated into main.js as well.  any changes here or there need to be duplicated (for now)
+
+function normalizeNameClient(name) {
+    return name.trim().toLowerCase().replace(/\s+blueprint$/i, "").replace(/\s+/g, " ");
+}
+
+async function removeItemFromBuildTracker(name) {
+    const tracker = await window.api.removeFromBuildTracker(name);
+    renderBuildTracker(tracker);
+}
+
+function pickBuildTrackerSuggestion(name, type) {
+    document.getElementById("buildTrackerName").value = name;
+    selectedBuildTrackerItem = { name, type };
+    document.getElementById("buildTrackerSuggestions").style.display = "none";
+}
+
+async function addItemToBuildTracker() {
+    const nameInput = document.getElementById("buildTrackerName").value.trim();
+
+    if (!nameInput) {
+        alert("Enter an item name");
+        return;
+    }
+
+    const name = selectedBuildTrackerItem?.name || nameInput;
+    const type = selectedBuildTrackerItem?.type || "Misc";
+
+    const parts = name.split(" ");
+    const set = parts.length > 1 ? parts[0] + " " + parts[1] : parts[0];
+
+    // Check whether this item exists on warframe.market
+    const normalizedName = normalizeNameClient(name);
+    const marketMatch = allItems.find(
+        i => normalizeNameClient(i.name) === normalizedName
+    );
+
+    const tracker = await window.api.addToBuildTracker({
+        name,
+        set,
+        type,
+        marketSlug: marketMatch ? marketMatch.slug : null,
+        tradable: !!marketMatch
+    });
+
+    renderBuildTracker(tracker);
+
+    document.getElementById("buildTrackerName").value = "";
+    selectedBuildTrackerItem = null;
+}
+
+// ------------------------------
 // SORTING
 // ------------------------------
 function sortBy(column) {
@@ -294,8 +461,10 @@ function hideSuggestions() {
 
 
 // ------------------------------
-// LOAD AUTOCOMPLETE LIST (Warframe Market)
+// LOAD AUTOCOMPLETE LIST (Warframe Market & WFCD)
 // ------------------------------
+
+// Warframe.Market
 (async function loadItemList() {
     try {
         const response = await fetch("https://api.warframe.market/v2/items");
@@ -307,5 +476,21 @@ function hideSuggestions() {
     } catch (err) {
         console.log("Failed to load item list:", err.message);
         allItems = [];
+    }
+})();
+
+// WFCD
+(async function loadWfcdItemList() {
+    try {
+        const response = await fetch("https://api.warframestat.us/items?only=name,type,category");
+        const json = await response.json();
+        wfcdItems = json.map(i => ({
+            name: i.name,
+            type: i.type,
+            category: i.category
+        }));
+    } catch (err) {
+        console.log("Failed to load WFCD item list:", err.message);
+        wfcdItems = [];
     }
 })();

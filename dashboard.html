@@ -128,6 +128,22 @@
 
     <table id="inventoryTable"></table>
 
+    <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #333;">
+        <h2>Build Tracker</h2>
+        <input id="buildTrackerName" placeholder="Item Name" oninput="showBuildTrackerSuggestions(this.value)">
+        <div id="buildTrackerSuggestions" style="background:#222; border:1px solid #333; display:none; position:absolute; width:200px; z-index: 10;"></div>
+        <button onclick="addItemToBuildTracker()">Add to Build Tracker</button>
+
+        <table id="buildTrackerTable" style="margin-top: 10px;"></table>
+    </div>
+
+    <div id="farmModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7);">
+        <div style="background:#222; max-width:500px; margin:60px auto; padding:20px; border-radius:6px; max-height:80vh; overflow-y:auto;">
+            <button onclick="closeFarmModal()" style="float:right;">Close</button>
+            <div id="farmModalBody"></div>
+        </div>
+    </div>
+
     <!-- Electron renderer script -->
     <script src="dashboard.js"></script>
 </body>
