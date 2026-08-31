@@ -49,7 +49,7 @@ async function combineSet() {
     await refreshTotals();
 
     const tracker = await window.api.getBuildTracker();
-    renderBuildTracker(tracker);
+    await renderBuildTracker(tracker);
 
     document.getElementById("combineSetName").value = "";
 }
@@ -70,7 +70,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     await refreshInventory();
     await refreshTotals();
     const tracker = await window.api.getBuildTracker();
-    renderBuildTracker(tracker);
+    await renderBuildTracker(tracker);
 });
 
 // Logic for the sidebar
@@ -99,7 +99,7 @@ async function addItem() {
     await refreshTotals();
 
     const tracker = await window.api.getBuildTracker();
-    renderBuildTracker(tracker);
+    await renderBuildTracker(tracker);
 
     document.getElementById("itemName").value = "";
     document.getElementById("itemSlug").value = "";
@@ -307,6 +307,8 @@ function showBuildTrackerSuggestions(value) {
     box.innerHTML = matches
         .map(m => {
             const safeName = m.name.replace(/'/g, "\\'");
+            const safeType = (m.type || "").replace(/'/g, "\\'");
+            const safeCategory = (m.category || "").replace(/'/g, "\\'");
             return `<div onclick="pickBuildTrackerSuggestion('${safeName}', '${m.type}')">${m.name}</div>`;
         })
         .join("");
@@ -314,49 +316,86 @@ function showBuildTrackerSuggestions(value) {
     box.style.display = "block";
 }
 
+function pickBuildTrackerSuggestion(name, wfcdType, wfcdCategory) {
+    document.getElementById("buildTrackerName").value = name;
+    const normalizedType = normalizeWfcdType(wfcdType, wfcdCategory);
+    selectedBuildTrackerItem = { name, type: normalizedType };
+    document.getElementById("buildTrackerSuggestions").style.display = "none";
+}
+
 let buildTracker = []; // current build tracker list, mirrors the `inventory` global pattern
 
-function renderBuildTracker(rows) {
+function isTrackableComponent(component, itemCategory) {
+    if (itemCategory === "Warframe Part") {
+        return ["Blueprint", "Chassis", "Neuroptics", "Systems"].includes(component.name);
+    }
+    return component.drops && component.drops.length > 0;
+}
+
+async function renderBuildTracker(rows) {
     buildTracker = rows;
-    const table = document.getElementById("buildTrackerTable");
+    const container = document.getElementById("buildTrackerTable");
+    container.innerHTML = "<p>Loading...</p>";
 
-    let html = `
-        <tr>
-            <th>Name</th>
-            <th>Set</th>
-            <th>Type</th>
-            <th>Obtained</th>
-            <th>Tradable</th>
-            <th>Action</th>
-            <th>Remove</th>
-        </tr>
-    `;
+    let html = "";
 
-    for (const item of rows) {
-        const isObtained = inventory.some(
-            invItem => normalizeNameClient(invItem.name) === normalizeNameClient(item.name) && invItem.quantity > 0
-        );
+    for (const trackedSet of rows) {
+        const components = await window.api.getFarmInfo(trackedSet.name, trackedSet.type);
+        const requiredParts = components.filter(c => isTrackableComponent(c, trackedSet.type));
+        const tracker = await window.api.getBuildTracker();
+        console.log(tracker);
 
-        const actionCell = item.tradable && !isObtained
-            ? `<button onclick="promoteToInventory('${item.name.replace(/'/g, "\\'")}', '${item.marketSlug}')">Add to Price Tracker</button>`
-            : "";
+        html += `<div class="set-panel">`;
+        html += `<h3>${trackedSet.name}</h3>`;
 
-        html += `
-        <tr>
-            <td class="item-name" onclick="showFarmInfo(${JSON.stringify(item).replace(/"/g, "&quot;")})">${item.name}</td>
-            <td>${item.set}</td>
-            <td>${item.type}</td>
-            <td>${isObtained ? "Yes" : "No"}</td>
-            <td>${item.tradable ? "Yes" : "No"}</td>
-            <td>${actionCell}</td>
-            <td>
-                <button class="delete-btn" onclick="removeItemFromBuildTracker('${item.name.replace(/'/g, "\\'")}')">X</button>
-            </td>
-        </tr>
-        `;
+        if (requiredParts.length === 0) {
+            html += `<p><em>No component data available for this set.</em></p>`;
+        } else {
+            let allOwned = true;
+
+            html += `<ul class="component-checklist">`;
+            for (const part of requiredParts) {
+                const fullName = `${trackedSet.name} ${part.name}`;
+                const owned = inventory.some(
+                    invItem => normalizeNameClient(invItem.name) === normalizeNameClient(fullName) && invItem.quantity > 0
+                );
+                if (!owned) allOwned = false;
+
+                html += `<li>
+                    <input type="checkbox" disabled ${owned ? "checked" : ""}>
+                    ${part.name}
+                </li>`;
+            }
+            html += `</ul>`;
+
+            if (allOwned) {
+                html += `<button onclick="combineSetFromPanel('${trackedSet.name.replace(/'/g, "\\'")}')">Combine Set</button>`;
+            }
+        }
+
+        html += `<button class="delete-btn" onclick="removeItemFromBuildTracker('${trackedSet.name.replace(/'/g, "\\'")}')">Remove from Tracker</button>`;
+        html += `</div>`;
     }
 
-    table.innerHTML = html;
+    container.innerHTML = html || "<p>No sets being tracked yet.</p>";
+}
+
+async function combineSetFromPanel(setName) {
+    const result = await window.api.combineSet(setName);
+
+    if (!result.success) {
+        alert(result.reason);
+        return;
+    }
+
+    alert(`Combined ${result.setsCreated} set(s) of ${setName}.`);
+
+    inventory = await window.api.getInventory();
+    renderTable(inventory);
+    await refreshTotals();
+
+    const tracker = await window.api.getBuildTracker();
+    await renderBuildTracker(tracker);
 }
 
 async function promoteToInventory(name, slug) {
@@ -365,7 +404,7 @@ async function promoteToInventory(name, slug) {
     await refreshTotals();
 
     const tracker = await window.api.getBuildTracker();
-    renderBuildTracker(tracker);
+    await renderBuildTracker(tracker);
 }
 
 // The normalize name function is duplicated into main.js as well.  any changes here or there need to be duplicated (for now)
@@ -376,7 +415,17 @@ function normalizeNameClient(name) {
 
 async function removeItemFromBuildTracker(name) {
     const tracker = await window.api.removeFromBuildTracker(name);
-    renderBuildTracker(tracker);
+    await renderBuildTracker(tracker);
+}
+
+function normalizeWfcdType(wfcdType, wfcdCategory) {
+    if (wfcdCategory === "Warframes" || wfcdType === "Warframe") return "Warframe Part";
+    if (wfcdCategory === "Mods" || wfcdType === "Mod") return "Mod";
+    if (wfcdCategory === "Arcanes") return "Arcane";
+    if (wfcdCategory === "Relics") return "Relic";
+    // Weapons cover many WFCD "type" values (Rifle, Pistol, Melee, Shotgun, etc.)
+    if (["Rifle", "Pistol", "Melee", "Shotgun", "Sentinel Weapon", "Archwing", "Archgun", "Archmelee"].includes(wfcdType)) return "Weapon Part";
+    return "Misc";
 }
 
 function pickBuildTrackerSuggestion(name, type) {
@@ -413,7 +462,7 @@ async function addItemToBuildTracker() {
         tradable: !!marketMatch
     });
 
-    renderBuildTracker(tracker);
+    await renderBuildTracker(tracker);
 
     document.getElementById("buildTrackerName").value = "";
     selectedBuildTrackerItem = null;

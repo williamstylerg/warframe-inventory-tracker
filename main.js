@@ -523,24 +523,17 @@ ipcMain.handle("inventory:add", async (event, { name, slug }) => {
 
     saveInventory(inventory);
 
-    // Direction 1: keep build tracker in sync — upsert this item as tradable
+    // Direction 1: ensure this item's parent set is tracked, regardless of whether
+    // the added item was the whole set or just one component
     let tracker = loadBuildTracker();
-    const trackerKey = normalizeName(existing.name);
+    const trackerKey = normalizeName(existing.set);
     const trackerExisting = tracker.find(i => normalizeName(i.name) === trackerKey);
 
     if (!trackerExisting) {
         tracker.push({
-            name: existing.name,
-            set: existing.set,
-            type: existing.type,
-            marketSlug: existing.slug,
-            tradable: true
+            name: existing.set,
+            type: existing.type
         });
-        saveBuildTracker(tracker);
-    } else if (!trackerExisting.tradable) {
-        // Item was added to build tracker before it was known to be tradable — correct it now
-        trackerExisting.marketSlug = existing.slug;
-        trackerExisting.tradable = true;
         saveBuildTracker(tracker);
     }
 
