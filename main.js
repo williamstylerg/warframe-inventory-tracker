@@ -3,7 +3,7 @@ const path = require("path");
 const fs = require("fs");
 const axios = require("axios");
 
-app.setName("Warframe Inventory Tracker Sandbox");
+app.setName("Warframe Inventory Tracker DEV"); //**********DEVERLOPER************
 
 let mainWindow;
 
@@ -54,6 +54,95 @@ function saveCache(cache) {
     fs.writeFileSync(cachePath, JSON.stringify(cache, null, 2));
 }
 
+const farmCachePath = path.join(app.getPath("userData"), "farmDataCache.json");
+
+function ensureFarmCacheFile() {
+    if (!fs.existsSync(farmCachePath)) {
+        fs.writeFileSync(farmCachePath, "{}");
+    }
+}
+
+function loadFarmCache() {
+    ensureFarmCacheFile();
+    return JSON.parse(fs.readFileSync(farmCachePath, "utf8"));
+}
+
+function saveFarmCache(cache) {
+    fs.writeFileSync(farmCachePath, JSON.stringify(cache, null, 2));
+}
+
+//-----------------------------
+// Fetching Farm from WFCD API
+//-----------------------------
+
+function summarizeDrops(drops) {
+    const bestByRelic = {};
+
+    for (const drop of drops) {
+        // Strip "(Exceptional)", "(Flawless)", "(Radiant)" to get the base relic name
+        const baseRelicName = drop.location.replace(/\s*\((Intact|Exceptional|Flawless|Radiant)\)\s*$/i, "").trim();
+
+        if (!bestByRelic[baseRelicName] || drop.chance > bestByRelic[baseRelicName].chance) {
+            bestByRelic[baseRelicName] = {
+                relic: baseRelicName,
+                chance: drop.chance,
+                rarity: drop.rarity
+            };
+        }
+    }
+
+    // Return as an array, sorted by chance descending (best odds first)
+    return Object.values(bestByRelic).sort((a, b) => b.chance - a.chance);
+}
+
+function getEndpointForType(itemType) {
+    if (itemType.includes("Warframe")) return "warframes";
+    if (itemType === "Mod") return "mods";
+    if (itemType.includes("Weapon")) return "weapons";
+    return null;
+}
+
+async function fetchFarmData(setName, itemType) {
+    const cache = loadFarmCache();
+    const key = setName.trim().toLowerCase();
+    const maxAge = 1000 * 60 * 60 * 24 * 14; // 14 days
+
+    if (cache[key] && (Date.now() - cache[key].fetchedAt) < maxAge) {
+        return cache[key].components;
+    }
+
+    const endpoint = getEndpointForType(itemType);
+
+    if (!endpoint) {
+        return []; // no farm-data lookup available for this item type (Mod, Arcane, Relic, Resource, etc.)
+    }
+    const url = `https://api.warframestat.us/${endpoint}/search/${encodeURIComponent(setName)}`;
+
+    try {
+        const response = await axios.get(url);
+        const results = response.data;
+
+        const exactMatch = results.find(
+            r => r.name.trim().toLowerCase() === setName.trim().toLowerCase()
+        );
+        const match = exactMatch || results[0];
+        const rawComponents = match?.components || [];
+
+        const components = rawComponents.map(comp => ({
+            name: comp.name,
+            ducats: comp.ducats,
+            drops: summarizeDrops(comp.drops || [])
+        }));
+
+        cache[key] = { components, fetchedAt: Date.now() };
+        saveFarmCache(cache);
+        return components;
+
+    } catch (err) {
+        console.log("Farm data fetch failed for", setName, err.message);
+        return cache[key]?.components || [];
+    }
+}
 // Load inventory
 function loadInventory() {
     ensureInventoryFile();
@@ -245,6 +334,12 @@ ipcMain.handle("inventory:add", async (event, { name, slug }) => {
 
     saveInventory(inventory);
     return inventory;
+});
+
+// Get Farm Info
+
+ipcMain.handle("item:getFarmInfo", async (event, { set, type }) => {
+    return await fetchFarmData(set, type);
 });
 
 // Update quantity

@@ -121,7 +121,7 @@ function renderTable(rows) {
 
         html += `
         <tr>
-            <td>${item.name}</td>
+            <td class="item-name" onclick="showFarmInfo('${item.set}', '${item.type}')">${item.name}</td>
             <td>${item.type}</td>
             <td>${item.rarity}</td>
             <td>${item.vaulted ? "Yes" : "No"}</td>
@@ -145,6 +145,45 @@ function renderTable(rows) {
     }
 
     table.innerHTML = html;
+}
+
+
+// ------------------------------
+// FARM INFO MODAL
+// ------------------------------
+async function showFarmInfo(set, type) {
+    const components = await window.api.getFarmInfo(set, type);
+    renderFarmModal(set, components);
+}
+
+function renderFarmModal(setName, components) {
+    const modal = document.getElementById("farmModal");
+    const body = document.getElementById("farmModalBody");
+
+    if (!components || components.length === 0) {
+        body.innerHTML = `<p>No farm data found for ${setName}.</p>`;
+    } else {
+        let html = `<h2>${setName}</h2>`;
+        for (const comp of components) {
+            html += `<h3>${comp.name}</h3>`;
+            if (!comp.drops || comp.drops.length === 0) {
+                html += `<p><em>No relic drop data (likely a resource or non-relic item).</em></p>`;
+            } else {
+                html += `<ul>`;
+                for (const drop of comp.drops) {
+                    html += `<li>${drop.relic} — ${drop.chance}% (${drop.rarity})</li>`;
+                }
+                html += `</ul>`;
+            }
+        }
+        body.innerHTML = html;
+    }
+
+    modal.style.display = "block";
+}
+
+function closeFarmModal() {
+    document.getElementById("farmModal").style.display = "none";
 }
 
 
@@ -206,7 +245,11 @@ function showSuggestions(value) {
     }
 
     box.innerHTML = matches
-        .map(m => `<div onclick="pickSuggestion('${m.name}', '${m.slug}')">${m.name}</div>`)
+        .map(m => {
+            const safeName = m.name.replace(/'/g, "\\'");
+            const safeSlug = m.slug.replace(/'/g, "\\'");
+            return `<div onclick="pickSuggestion('${safeName}', '${safeSlug}')">${m.name}</div>`;
+        })
         .join("");
 
     box.style.display = "block";

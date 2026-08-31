@@ -22,5 +22,9 @@ contextBridge.exposeInMainWorld("api", {
 
     // Get totals
     getTotals: () =>
-        ipcRenderer.invoke("inventory:totals")
+        ipcRenderer.invoke("inventory:totals"),
+
+    // Farm Data
+    getFarmInfo: (set, type) =>
+        ipcRenderer.invoke("item:getFarmInfo", { set, type })
 });
