@@ -147,7 +147,8 @@ async function fetchModFarmData(modName) {
 function getEndpointForType(itemType) {
     if (itemType.includes("Warframe")) return "warframes";
     if (itemType === "Mod") return "mods";
-    if (itemType.includes("Weapon")) return "weapons";
+    const weaponTypes = ["Weapon", "Rifle", "Pistol", "Melee", "Shotgun", "Sentinel", "Archwing", "Archgun", "Archmelee", "Secondary", "Primary"];
+    if (weaponTypes.some(t => itemType.includes(t))) return "weapons";
     return null;
 }
 
@@ -183,7 +184,7 @@ async function fetchFarmData(setName, itemType) {
             drops: summarizeDrops(comp.drops || [])
         }));
 
-        cache[key] = { components, fetchedAt: Date.now() };
+        cache[key] = { components, imageName: match?.imageName || null, fetchedAt: Date.now() };
         saveFarmCache(cache);
         return components;
 
@@ -478,6 +479,21 @@ ipcMain.handle("inventory:combineSet", async (event, { setName }) => {
 
 // Get full inventory
 ipcMain.handle("inventory:get", () => loadInventory());
+
+// Get image
+ipcMain.handle("item:getImage", async (event, { name, type }) => {
+    const cache = loadFarmCache();
+    const key = name.trim().toLowerCase();
+
+    if (cache[key]?.imageName) {
+        return cache[key].imageName;
+    }
+
+    // Not cached yet — trigger a normal farm-data fetch, which will populate it
+    await fetchFarmData(name, type);
+    const refreshedCache = loadFarmCache();
+    return refreshedCache[key]?.imageName || null;
+});
 
 // Add item
 ipcMain.handle("inventory:add", async (event, { name, slug }) => {

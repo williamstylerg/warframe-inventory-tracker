@@ -137,6 +137,53 @@
         #suggestions div:hover {
             background:#444;
         }
+
+        .build-tracker-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+        }
+
+        .set-card {
+            background: #1e1e1e;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .set-card-image {
+            width: 100%;
+            height: 140px;
+            object-fit: contain;
+            background: #111;
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+
+        .set-card h3 {
+            margin: 0 0 10px 0;
+            cursor: pointer;
+        }
+
+        .set-card h3:hover {
+            color: #2a6df4;
+        }
+
+        .component-checklist {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 10px 0;
+            flex-grow: 1;
+        }
+
+        .component-checklist li {
+            padding: 4px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
     </style>
 </head>
 

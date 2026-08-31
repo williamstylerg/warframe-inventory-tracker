@@ -381,53 +381,58 @@ async function renderBuildTracker(rows) {
 
     container.innerHTML = "<p>Loading...</p>";
 
-    let html = "";
+    let html = `<div class="build-tracker-grid">`;
 
     for (const trackedSet of rows) {
         const components = await window.api.getFarmInfo(trackedSet.name, trackedSet.type);
         const requiredParts = components.filter(c => isTrackableComponent(c, trackedSet.type));
-        const tracker = await window.api.getBuildTracker();
-        console.log(tracker);
+        const imageName = await window.api.getItemImage(trackedSet.name, trackedSet.type);
+        const imageUrl = imageName ? `https://cdn.warframestat.us/img/${imageName}` : null;
 
-        html += `<div class="set-panel">`;
-        html += `<h3>${trackedSet.name}</h3>`;
+        const safeSetName = trackedSet.name.replace(/'/g, "\\'");
+        const safeSetNameForClick = trackedSet.name.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+
+        html += `<div class="set-card">`;
+
+        if (imageUrl) {
+            html += `<img src="${imageUrl}" class="set-card-image" alt="${trackedSet.name}">`;
+        }
+
+        html += `<h3 onclick="showFarmInfo({name: '${safeSetNameForClick}', set: '${safeSetNameForClick}', type: '${trackedSet.type}'})">${trackedSet.name}</h3>`;
 
         if (requiredParts.length === 0) {
             html += `<p><em>No component data available for this set.</em></p>`;
         } else {
             let allOwned = true;
 
-        html += `<ul class="component-checklist">`;
-        for (const part of requiredParts) {
-            const isPrime = part.ducats !== undefined;
-            let owned;
+            html += `<ul class="component-checklist">`;
+            for (const part of requiredParts) {
+                const isPrime = part.ducats !== undefined;
+                let owned;
 
-            if (isPrime) {
-                const fullName = `${trackedSet.name} ${part.name}`;
-                owned = inventory.some(
-                    invItem => normalizeNameClient(invItem.name) === normalizeNameClient(fullName) && invItem.quantity > 0
-                );
-            } else {
-                owned = (trackedSet.obtainedParts || []).includes(part.name);
+                if (isPrime) {
+                    const fullName = `${trackedSet.name} ${part.name}`;
+                    owned = inventory.some(
+                        invItem => normalizeNameClient(invItem.name) === normalizeNameClient(fullName) && invItem.quantity > 0
+                    );
+                } else {
+                    owned = (trackedSet.obtainedParts || []).includes(part.name);
+                }
+
+                if (!owned) allOwned = false;
+
+                const safePartName = part.name.replace(/'/g, "\\'");
+
+                html += `<li>
+                    <input type="checkbox" ${owned ? "checked" : ""}
+                        onchange="this.blur(); this.checked ? checkOffComponent('${safeSetName}', '${safePartName}', ${isPrime}, '${trackedSet.type}') : uncheckOffComponent('${safeSetName}', '${safePartName}', ${isPrime})">
+                    ${part.name}
+                </li>`;
             }
-
-            if (!owned) allOwned = false;
-
-            const safeSetName = trackedSet.name.replace(/'/g, "\\'");
-            const safePartName = part.name.replace(/'/g, "\\'");
-
-            html += `<li>
-                <input type="checkbox" ${owned ? "checked" : ""}
-                    onchange="this.blur(); this.checked ? checkOffComponent('${safeSetName}', '${safePartName}', ${isPrime}, '${trackedSet.type}') : uncheckOffComponent('${safeSetName}', '${safePartName}', ${isPrime})">
-                ${part.name}
-            </li>`;
-        }
-        html += `</ul>`;
+            html += `</ul>`;
 
             if (allOwned) {
                 const isPrimeSet = requiredParts.some(p => p.ducats !== undefined);
-                const safeSetName = trackedSet.name.replace(/'/g, "\\'");
-
                 if (isPrimeSet) {
                     html += `<button onclick="combineSetFromPanel('${safeSetName}')">Combine Set</button>`;
                 } else {
@@ -436,9 +441,11 @@ async function renderBuildTracker(rows) {
             }
         }
 
-        html += `<button class="delete-btn" onclick="removeItemFromBuildTracker('${trackedSet.name.replace(/'/g, "\\'")}')">Remove from Tracker</button>`;
+        html += `<button class="delete-btn" onclick="removeItemFromBuildTracker('${safeSetName}')">Remove from Tracker</button>`;
         html += `</div>`;
     }
+
+    html += `</div>`;
 
     container.innerHTML = html || "<p>No sets being tracked yet.</p>";
     scrollContainer.scrollTop = scrollPos;

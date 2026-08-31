@@ -30,7 +30,7 @@ contextBridge.exposeInMainWorld("api", {
 
     // Build Tracker
     addToBuildTracker: (item) =>
-    ipcRenderer.invoke("buildTracker:add", item),
+        ipcRenderer.invoke("buildTracker:add", item),
 
     getBuildTracker: () =>
         ipcRenderer.invoke("buildTracker:get"),
@@ -45,5 +45,8 @@ contextBridge.exposeInMainWorld("api", {
         ipcRenderer.invoke("buildTracker:checkPart", { setName, partName }),
 
     uncheckBuildTrackerPart: (setName, partName) =>
-    ipcRenderer.invoke("buildTracker:uncheckPart", { setName, partName })
+        ipcRenderer.invoke("buildTracker:uncheckPart", { setName, partName }),
+
+    getItemImage: (name, type) =>
+        ipcRenderer.invoke("item:getImage", { name, type })
 });
