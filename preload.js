@@ -48,5 +48,8 @@ contextBridge.exposeInMainWorld("api", {
         ipcRenderer.invoke("buildTracker:uncheckPart", { setName, partName }),
 
     getItemImage: (name, type) =>
-        ipcRenderer.invoke("item:getImage", { name, type })
+        ipcRenderer.invoke("item:getImage", { name, type }),
+
+    getPriceHistory: (slug) =>
+        ipcRenderer.invoke("item:getPriceHistory", { slug })
 });

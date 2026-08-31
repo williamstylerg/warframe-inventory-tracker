@@ -5,46 +5,46 @@
     <title>Warframe Inventory Tracker</title>
 
     <style>
-.app-layout {
-    display: flex;
-    height: 100vh;
-}
+        .app-layout {
+            display: flex;
+            height: 100vh;
+        }
 
-.sidebar {
-    width: 200px;
-    background: #1a1a1a;
-    padding: 20px;
-    flex-shrink: 0;
-    border-right: 1px solid #333;
-}
+        .sidebar {
+            width: 200px;
+            background: #1a1a1a;
+            padding: 20px;
+            flex-shrink: 0;
+            border-right: 1px solid #333;
+        }
 
-.sidebar h1 {
-    font-size: 1.2em;
-    margin-bottom: 20px;
-}
+        .sidebar h1 {
+            font-size: 1.2em;
+            margin-bottom: 20px;
+        }
 
-.nav-btn {
-    display: block;
-    width: 100%;
-    text-align: left;
-    background: transparent;
-    margin: 4px 0;
-    padding: 10px;
-}
+        .nav-btn {
+            display: block;
+            width: 100%;
+            text-align: left;
+            background: transparent;
+            margin: 4px 0;
+            padding: 10px;
+        }
 
-.nav-btn:hover {
-    background: #2a2a2a;
-}
+        .nav-btn:hover {
+            background: #2a2a2a;
+        }
 
-.nav-btn.active {
-    background: #2a6df4;
-}
+        .nav-btn.active {
+            background: #2a6df4;
+        }
 
-.content {
-    flex-grow: 1;
-    padding: 20px;
-    overflow-y: auto;
-}
+        .content {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
         body {
             background: #111;
             color: #eee;
@@ -184,13 +184,37 @@
             align-items: center;
             gap: 8px;
         }
+
+        .item-name {
+            cursor: pointer;
+            color: inherit;
+        }
+
+        .item-name:hover {
+            color: #2a6df4;
+            font-weight: bold;
+            text-decoration: underline;
+        }
     </style>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script> 
 </head>
 
 <div id="farmModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7);">
     <div style="background:#222; max-width:500px; margin:60px auto; padding:20px; border-radius:6px; max-height:80vh; overflow-y:auto;">
         <button onclick="closeFarmModal()" style="float:right;">Close</button>
         <div id="farmModalBody"></div>
+    </div>
+</div>
+
+<div id="priceHistoryModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7);">
+    <div style="background:#222; max-width:700px; margin:40px auto; padding:20px; border-radius:6px; max-height:85vh; overflow-y:auto;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+            <h2 id="priceHistoryTitle" style="margin:0;"></h2>
+            <button onclick="closePriceHistoryModal()">Close</button>
+        </div>
+        <canvas id="priceHistoryChart" width="650" height="300"></canvas>
+        <canvas id="volumeChart" width="650" height="100" style="margin-top:4px;"></canvas>
     </div>
 </div>
 

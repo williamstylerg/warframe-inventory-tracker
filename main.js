@@ -72,6 +72,70 @@ function saveFarmCache(cache) {
 }
 
 //-----------------------------
+// Fetching Price History from Warframe.Market
+//-----------------------------
+
+const priceHistoryCachePath = path.join(app.getPath("userData"), "priceHistoryCache.json");
+
+function ensurePriceHistoryCacheFile() {
+    if (!fs.existsSync(priceHistoryCachePath)) {
+        fs.writeFileSync(priceHistoryCachePath, "{}");
+    }
+}
+
+function loadPriceHistoryCache() {
+    ensurePriceHistoryCacheFile();
+    return JSON.parse(fs.readFileSync(priceHistoryCachePath, "utf8"));
+}
+
+function savePriceHistoryCache(cache) {
+    fs.writeFileSync(priceHistoryCachePath, JSON.stringify(cache, null, 2));
+}
+
+async function fetchPriceHistory(slug) {
+    const cache = loadPriceHistoryCache();
+    const key = slug.trim().toLowerCase();
+    const maxAge = 1000 * 60 * 60 * 12; // 12 hours — this data updates daily server-side, no need to refetch constantly
+
+    if (cache[key] && (Date.now() - cache[key].fetchedAt) < maxAge) {
+        return cache[key].history;
+    }
+
+    const url = `https://api.warframe.market/v1/items/${slug}/statistics?include=item`;
+
+    try {
+        const response = await axios.get(url, {
+            headers: {
+                "User-Agent": "Mozilla/5.0",
+                "Accept": "application/json",
+                "Platform": "pc",
+                "Language": "en",
+                "Crossplay": "true",
+                "Referer": "https://warframe.market/" 
+            }
+        });
+        const days90 = response.data?.payload?.statistics_closed?.["90days"] || [];
+
+        const history = days90.map(day => ({
+            date: day.datetime,
+            movingAvg: day.moving_avg,
+            median: day.median,
+            minPrice: day.min_price,
+            maxPrice: day.max_price,
+            volume: day.volume
+        }));
+
+        cache[key] = { history, fetchedAt: Date.now() };
+        savePriceHistoryCache(cache);
+        return history;
+
+    } catch (err) {
+        console.log("Price history fetch failed for", slug, err.message);
+        return cache[key]?.history || [];
+    }
+}
+
+//-----------------------------
 // Fetching Farm from WFCD API
 //-----------------------------
 
@@ -608,6 +672,11 @@ ipcMain.handle("buildTracker:uncheckPart", (event, { setName, partName }) => {
     }
 
     return tracker;
+});
+
+// Price history handler
+ipcMain.handle("item:getPriceHistory", async (event, { slug }) => {
+    return await fetchPriceHistory(slug);
 });
 
 // Get full build tracker list

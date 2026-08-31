@@ -182,7 +182,7 @@ function renderTable(rows) {
                     onchange="updateQuantity('${item.slug}', this.value)">
             </td>
 
-            <td>${item.price}</td>
+            <td class="item-name" onclick="showPriceHistory('${item.slug}', '${item.name.replace(/'/g, "\\'")}')">${item.price}</td>
             <td>${total}</td>
             <td>${new Date(item.lastUpdated).toLocaleDateString()}</td>
 
@@ -543,6 +543,126 @@ async function addItemToBuildTracker() {
     document.getElementById("buildTrackerName").value = "";
     selectedBuildTrackerItem = null;
 }
+
+// ------------------------------
+// PRICE HISTORY MODAL
+// ------------------------------
+
+let priceHistoryChartInstance = null;
+let volumeChartInstance = null;
+
+async function showPriceHistory(slug, itemName) {
+    const history = await window.api.getPriceHistory(slug);
+
+    document.getElementById("priceHistoryTitle").textContent = `${itemName} — 90 Day Price History`;
+
+    if (!history || history.length === 0) {
+        document.getElementById("priceHistoryModal").style.display = "block";
+        return;
+    }
+
+    const labels = history.map(d => new Date(d.date).toLocaleDateString());
+    const movingAvgData = history.map(d => d.movingAvg);
+    const medianData = history.map(d => d.median);
+    const volumeData = history.map(d => d.volume);
+
+    const priceCtx = document.getElementById("priceHistoryChart").getContext("2d");
+    const volumeCtx = document.getElementById("volumeChart").getContext("2d");
+
+    if (priceHistoryChartInstance) priceHistoryChartInstance.destroy();
+    if (volumeChartInstance) volumeChartInstance.destroy();
+
+    priceHistoryChartInstance = new Chart(priceCtx, {
+        type: "line",
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: "Moving Avg (Plat)",
+                    data: movingAvgData,
+                    borderColor: "#2a6df4",
+                    backgroundColor: "#2a6df4",
+                    tension: 0.2,
+                    pointRadius: 0,
+                    borderWidth: 2
+                },
+                {
+                    label: "Median (Plat)",
+                    data: medianData,
+                    borderColor: "#888",
+                    backgroundColor: "#888",
+                    tension: 0.2,
+                    pointRadius: 0,
+                    borderWidth: 1,
+                    borderDash: [3, 3]
+                }
+            ]
+        },
+        options: {
+            responsive: false,
+            interaction: { mode: "index", intersect: false },
+            scales: {
+                y: {
+                    title: { display: true, text: "Platinum", color: "#eee" },
+                    ticks: { color: "#eee" },
+                    grid: { color: "#333" }
+                },
+                x: {
+                    ticks: { display: false },
+                    grid: { color: "#222" }
+                }
+            },
+            plugins: {
+                legend: { labels: { color: "#eee" } }
+            }
+        }
+    });
+
+    const rawMax = Math.max(...volumeData) * 1.15;
+    const volumeMax = Math.ceil(rawMax / 50) * 50;
+
+    volumeChartInstance = new Chart(volumeCtx, {
+        type: "bar",
+        data: {
+            labels: labels,
+            datasets: [{
+                label: "Volume",
+                data: volumeData,
+                backgroundColor: "rgba(237, 160, 46, 0.6)"
+            }]
+        },
+        options: {
+            responsive: false,
+            scales: {
+                y: {
+                    title: { display: true, text: "Volume", color: "#eee" },
+                    ticks: { color: "#eee", stepSize: 50 },
+                    grid: { color: "#333" },
+                    max: volumeMax
+                },
+                x: {
+                    ticks: { color: "#eee", maxTicksLimit: 12 },
+                    grid: { color: "#222" }
+                }
+            },
+            plugins: {
+                legend: { display: false }
+            }
+        }
+    });
+
+    document.getElementById("priceHistoryModal").style.display = "block";
+}
+
+function closePriceHistoryModal() {
+    document.getElementById("priceHistoryModal").style.display = "none";
+}
+
+document.getElementById("priceHistoryModal").addEventListener("click", (event) => {
+    if (event.target.id === "priceHistoryModal") {
+        closePriceHistoryModal();
+    }
+});
 
 // ------------------------------
 // SORTING
