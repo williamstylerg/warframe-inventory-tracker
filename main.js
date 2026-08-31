@@ -3,7 +3,7 @@ const path = require("path");
 const fs = require("fs");
 const axios = require("axios");
 
-app.setName("Warframe Inventory Tracker DEV"); //**********DEVERLOPER************
+app.setName("Warframe Inventory Tracker"); 
 
 let mainWindow;
 
