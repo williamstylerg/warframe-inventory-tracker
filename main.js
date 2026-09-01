@@ -71,6 +71,17 @@ function saveFarmCache(cache) {
     fs.writeFileSync(farmCachePath, JSON.stringify(cache, null, 2));
 }
 
+// dev tool for clearing cache
+
+async function clearFarmCache() {
+    try {
+        fs.writeFileSync(farmCachePath, "{}");
+        return { success: true };
+    } catch (err) {
+        return { success: false, reason: err.message };
+    }
+}
+
 //-----------------------------
 // Fetching Price History from Warframe.Market
 //-----------------------------
@@ -171,6 +182,33 @@ function summarizeDrops(drops) {
     return Object.values(bestByRelic).sort((a, b) => b.chance - a.chance);
 }
 
+    // Function for rarity based on drop rate
+
+function median(numbers) {
+    const sorted = [...numbers].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    return sorted.length % 2 !== 0
+        ? sorted[mid]
+        : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+function chanceToTier(chance) {
+    if (chance === undefined || chance === null) return null;
+    if (chance <= 15) return "gold";
+    if (chance <= 22.665) return "silver";
+    return "bronze";
+}
+
+function assignRarityTiers(components) {
+    return components.map(comp => {
+        const summarized = summarizeDrops(comp.drops || []);
+        if (summarized.length === 0) return { ...comp, tier: null };
+
+        const medianChance = median(summarized.map(d => d.chance));
+        return { ...comp, tier: chanceToTier(medianChance) };
+    });
+}
+
     // Fetch farm data for mods
 
 async function fetchModFarmData(modName) {
@@ -241,12 +279,7 @@ async function fetchFarmData(setName, itemType) {
         );
         const match = exactMatch || results[0];
         const rawComponents = match?.components || [];
-
-        const components = rawComponents.map(comp => ({
-            name: comp.name,
-            ducats: comp.ducats,
-            drops: summarizeDrops(comp.drops || [])
-        }));
+        const components = assignRarityTiers(rawComponents);
 
         cache[key] = { components, imageName: match?.imageName || null, fetchedAt: Date.now() };
         saveFarmCache(cache);
@@ -294,6 +327,23 @@ async function fetchModFarmData(modName) {
     }
 }
 
+// rarity helper
+async function resolveTierForItem(itemName, itemType, itemSet) {
+    const isWarframeType = itemType.includes("Warframe");
+    const weaponTypes = ["Weapon", "Rifle", "Pistol", "Melee", "Shotgun", "Sentinel", "Archwing", "Archgun", "Archmelee", "Secondary", "Primary"];
+    const isWeaponType = weaponTypes.some(t => itemType.includes(t));
+
+    if (!isWarframeType && !isWeaponType) return null;
+    if (itemName.trim().endsWith(" Set")) return null; // whole combined sets have no tier
+
+    const components = await fetchFarmData(itemSet, itemType);
+    let shortName = itemName.replace(itemSet, "").trim();
+    if (shortName === "") shortName = "Blueprint"; // name collapsed to just the set = this IS the Blueprint
+
+    const match = components.find(c => c.name === shortName);
+    return match?.tier || null;
+}
+
 // Load inventory
 function loadInventory() {
     ensureInventoryFile();
@@ -328,6 +378,25 @@ function loadInventory() {
 // Save inventory
 function saveInventory(inventory) {
     fs.writeFileSync(inventoryPath, JSON.stringify(inventory, null, 2));
+}
+
+// Recompute Rarity Tiers
+async function backfillTiers() {
+    let inventory = loadInventory();
+    let updated = 0;
+
+    for (const item of inventory) {
+        if (!["Warframe Part", "Weapon Part"].includes(item.type)) continue;
+
+        const tier = await resolveTierForItem(item.name, item.type, item.set);
+        if (tier !== item.tier) {
+            item.tier = tier;
+            updated++;
+        }
+    }
+
+    saveInventory(inventory);
+    return { success: true, updated, total: inventory.length };
 }
 
 
@@ -654,7 +723,11 @@ ipcMain.handle("backup:export", async () => await exportBackup());
 ipcMain.handle("backup:import", async () => await importBackup());
 ipcMain.handle("backup:restoreAuto", async () => await restoreAutoBackup());
 
+// clear cache
+ipcMain.handle("cache:clearFarmData", async () => await clearFarmCache());
 
+// recompute tiers
+ipcMain.handle("inventory:backfillTiers", async () => await backfillTiers());
 
 // Combine components
 ipcMain.handle("inventory:combineSet", async (event, { setName }) => {
@@ -696,6 +769,7 @@ ipcMain.handle("inventory:add", async (event, { name, slug }) => {
     })();
 
     const itemType = inferTypeFromTags(tags);
+    const tier = await resolveTierForItem(name.replace(" Blueprint", ""), itemType, setName);
 
     if (existing) {
         existing.quantity += 1;
@@ -703,6 +777,7 @@ ipcMain.handle("inventory:add", async (event, { name, slug }) => {
         existing.rarity = inferRarityFromTags(tags);
         existing.vaulted = tags.includes("vaulted");
         existing.set = setName;
+        existing.tier = tier;
     } else {
         existing = {
             name: name.replace(" Blueprint", ""),
@@ -713,6 +788,7 @@ ipcMain.handle("inventory:add", async (event, { name, slug }) => {
             rarity: inferRarityFromTags(tags),
             vaulted: tags.includes("vaulted"),
             set: setName,
+            tier: tier,
             lastUpdated: Date.now()
         };
         inventory.push(existing);

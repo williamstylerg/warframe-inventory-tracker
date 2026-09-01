@@ -60,5 +60,11 @@ contextBridge.exposeInMainWorld("api", {
         ipcRenderer.invoke("backup:import"),
 
     restoreAutoBackup: () => 
-        ipcRenderer.invoke("backup:restoreAuto")
+        ipcRenderer.invoke("backup:restoreAuto"),
+
+    clearFarmCache: () => 
+        ipcRenderer.invoke("cache:clearFarmData"),
+    
+    backfillTiers: () => 
+        ipcRenderer.invoke("inventory:backfillTiers")
 });

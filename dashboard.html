@@ -99,6 +99,44 @@
             background: #2a2a2a;
         }
 
+        .row-set > td {
+            background-color: rgba(58, 110, 165, 0.22);
+        }
+        .row-set:hover > td {
+            background-color: rgba(58, 110, 165, 0.35);
+        }
+
+        .row-set > td {
+            background-color: rgba(58, 110, 165, 0.22);
+            border-top: 2px solid #ffffff;
+            border-bottom: 2px solid #ffffff;           
+        }
+        .row-set > td:first-child {
+            border-left: 2px solid #ffffff;
+        }
+        .row-set > td:last-child {
+            border-right: 2px solid #ffffff;
+        }
+        .row-set:hover > td {
+            background-color: rgba(58, 110, 165, 0.35);
+        }
+
+        .tier-bronze > td { background-color: rgba(139, 90, 43, 0.25); }
+        .tier-silver > td { background-color: rgba(140, 154, 168, 0.2); }
+        .tier-gold > td { background-color: rgba(234, 196, 53, 0.22); }
+
+        .tier-bronze:hover > td { background-color: rgba(139, 90, 43, 0.4); }
+        .tier-silver:hover > td { background-color: rgba(140, 154, 168, 0.35); }
+        .tier-gold:hover > td { background-color: rgba(234, 196, 53, 0.37); }
+
+        .mod-common > td { background-color: rgba(139, 90, 43, 0.25); }
+        .mod-uncommon > td { background-color: rgba(140, 154, 168, 0.2); }
+        .mod-rare > td { background-color: rgba(234, 196, 53, 0.22); }
+
+        .mod-common:hover > td { background-color: rgba(139, 90, 43, 0.4); }
+        .mod-uncommon:hover > td { background-color: rgba(140, 154, 168, 0.35); }
+        .mod-rare:hover > td { background-color: rgba(234, 196, 53, 0.37); }
+
         .delete-btn {
             background: #b82a2a;
             color: white;
@@ -283,7 +321,15 @@
             <div style="margin-bottom:24px;">
                 <h3>Data Management</h3>
                 <button onclick="restoreAutoBackupHandler()" style="background:#444;">Restore Last Auto-Backup</button>
+                <button onclick="backfillTiersHandler()" style="background:#444;">Recompute Rarity Tiers</button>
             </div>
+
+            <div style="margin-top:20px;">
+                <h3>Advanced</h3>
+                <button onclick="clearFarmCacheHandler()" style="background:#444;">Clear Farm Data Cache</button>
+            </div>
+
+
         </div>
     </div> 
 

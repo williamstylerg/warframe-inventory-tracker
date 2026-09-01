@@ -17,6 +17,48 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 
 // ------------------------------
+// Helper Function For Table Visuals
+// ------------------------------
+
+function getRowClass(item) {
+    const isSet = item.name.trim().endsWith(" Set");
+    if (isSet) return "row-set";
+
+    if (item.type === "Mod") {
+        if (item.rarity === "Common") return "mod-common";
+        if (item.rarity === "Uncommon") return "mod-uncommon";
+        if (item.rarity === "Rare") return "mod-rare";
+        return "";
+    }
+
+    if (item.tier === "gold") return "tier-gold";
+    if (item.tier === "silver") return "tier-silver";
+    if (item.tier === "bronze") return "tier-bronze";
+    return "";
+}
+
+function getDisplayRarity(item) {
+    if (item.name.trim().endsWith(" Set")) {
+        return "";
+    }
+    if (item.rarity && item.rarity !== "Unknown") {
+        return item.rarity;
+    }
+    if (item.tier === "gold") return "Rare";
+    if (item.tier === "silver") return "Uncommon";
+    if (item.tier === "bronze") return "Common";
+    return "Unknown";
+}
+
+function getDisplayType(item) {
+    if (item.name.trim().endsWith(" Set")) {
+        return "Set";
+    }
+    return item.type;
+}
+
+
+// ------------------------------
 // REFRESH INVENTORY TABLE
 // ------------------------------
 async function refreshInventory() {
@@ -100,6 +142,13 @@ document.addEventListener("keydown", (event) => {
     }
 });
 
+async function backfillTiersHandler() {
+    const result = await window.api.backfillTiers();
+    inventory = await window.api.getInventory();
+    renderTable(inventory);
+    alert(`Updated tier data for ${result.updated} of ${result.total} items.`);
+}
+
 // ------------------------------
 // ADD ITEM
 // ------------------------------
@@ -154,6 +203,21 @@ async function deleteItem(slug) {
     await refreshTotals();
 }
 
+// ------------------------------
+// CLEAR CACHE BUTTON HELPER
+// ------------------------------
+
+async function clearFarmCacheHandler() {
+    const confirmed = confirm("This will clear cached farm/component data. It will be refetched automatically as needed. Continue?");
+    if (!confirmed) return;
+
+    const result = await window.api.clearFarmCache();
+    if (result.success) {
+        alert("Farm data cache cleared.");
+    } else {
+        alert("Failed to clear cache: " + result.reason);
+    }
+}
 
 // ------------------------------
 // SORT ARROW HELPER
@@ -187,11 +251,12 @@ function renderTable(rows) {
     for (const item of rows) {
         const total = item.price * item.quantity;
 
+        const rowClass = getRowClass(item);
         html += `
-        <tr>
+        <tr class="${rowClass}">
             <td class="item-name" onclick="showFarmInfo(inventory[${rows.indexOf(item)}])">${item.name}</td>
-            <td>${item.type}</td>
-            <td>${item.rarity}</td>
+            <td>${getDisplayType(item)}</td>
+            <td>${getDisplayRarity(item)}</td>
             <td>${item.vaulted ? "Yes" : "No"}</td>
             <td>${item.set}</td>
 
@@ -705,6 +770,10 @@ function sortBy(column) {
         } else if (column === 'lastUpdated') {
             valA = a.lastUpdated;
             valB = b.lastUpdated;
+        } else if (column === 'rarity') {
+            const rarityRank = { "": -1, "Common": 0, "Uncommon": 1, "Rare": 2 };
+            valA = rarityRank[getDisplayRarity(a)] ?? -1;
+            valB = rarityRank[getDisplayRarity(b)] ?? -1;
         } else {
             valA = a[column];
             valB = b[column];
