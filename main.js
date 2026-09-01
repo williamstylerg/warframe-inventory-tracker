@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require("electron");
+const { app, BrowserWindow, ipcMain, dialog } = require("electron");
 const path = require("path");
 const fs = require("fs");
 const axios = require("axios");
@@ -330,6 +330,119 @@ function saveInventory(inventory) {
     fs.writeFileSync(inventoryPath, JSON.stringify(inventory, null, 2));
 }
 
+
+// ------------------------------
+// Backup / Restore
+// ------------------------------
+
+async function exportBackup() {
+    const inventory = loadInventory();
+    const buildTracker = loadBuildTracker();
+
+    const backup = {
+        appVersion: app.getVersion(),
+        exportedAt: Date.now(),
+        inventory,
+        buildTracker
+    };
+
+    const result = await dialog.showSaveDialog(mainWindow, {
+        title: "Export Backup",
+        defaultPath: `warframe-tracker-backup-${new Date().toISOString().slice(0, 10)}.json`,
+        filters: [{ name: "JSON Backup", extensions: ["json"] }]
+    });
+
+    if (result.canceled) {
+        return { success: false, reason: "Export cancelled." };
+    }
+
+    fs.writeFileSync(result.filePath, JSON.stringify(backup, null, 2));
+    return { success: true, path: result.filePath };
+}
+
+async function importBackup() {
+    const result = await dialog.showOpenDialog(mainWindow, {
+        title: "Import Backup",
+        filters: [{ name: "JSON Backup", extensions: ["json"] }],
+        properties: ["openFile"]
+    });
+
+    if (result.canceled || result.filePaths.length === 0) {
+        return { success: false, reason: "Import cancelled." };
+    }
+
+    try {
+        const raw = fs.readFileSync(result.filePaths[0], "utf8");
+        const backup = JSON.parse(raw);
+
+        if (!Array.isArray(backup.inventory) || !Array.isArray(backup.buildTracker)) {
+            return { success: false, reason: "This file doesn't look like a valid backup." };
+        }
+
+        saveInventory(backup.inventory);
+        saveBuildTracker(backup.buildTracker);
+
+        return { success: true, inventory: backup.inventory, buildTracker: backup.buildTracker };
+    } catch (err) {
+        return { success: false, reason: "Couldn't read that file: " + err.message };
+    }
+}
+
+// Auto backup on app close
+app.on("before-quit", (event) => {
+    event.preventDefault();
+
+    try {
+        const inventory = loadInventory();
+        const buildTracker = loadBuildTracker();
+        const backup = {
+            appVersion: app.getVersion(),
+            exportedAt: Date.now(),
+            inventory,
+            buildTracker
+        };
+
+        const autoBackupPath = path.join(app.getPath("userData"), "auto-backup.json");
+        fs.writeFileSync(autoBackupPath, JSON.stringify(backup, null, 2));
+        console.log("Auto-backup saved to:", autoBackupPath);
+    } catch (err) {
+        console.log("Auto-backup failed:", err.message);
+    }
+
+    app.exit();
+});
+
+// Resore auto backup
+
+async function restoreAutoBackup() {
+    const autoBackupPath = path.join(app.getPath("userData"), "auto-backup.json");
+
+    if (!fs.existsSync(autoBackupPath)) {
+        return { success: false, reason: "No auto-backup found." };
+    }
+
+    try {
+        const raw = fs.readFileSync(autoBackupPath, "utf8");
+        const backup = JSON.parse(raw);
+
+        if (!Array.isArray(backup.inventory) || !Array.isArray(backup.buildTracker)) {
+            return { success: false, reason: "The auto-backup file looks corrupted." };
+        }
+
+        saveInventory(backup.inventory);
+        saveBuildTracker(backup.buildTracker);
+
+        return {
+            success: true,
+            inventory: backup.inventory,
+            buildTracker: backup.buildTracker,
+            exportedAt: backup.exportedAt
+        };
+    } catch (err) {
+        return { success: false, reason: "Couldn't read the auto-backup: " + err.message };
+    }
+}
+
 // combine set logic
 async function combineSetComponents(setName) {
     let inventory = loadInventory();
@@ -535,6 +648,13 @@ function saveBuildTracker(list) {
 // ------------------------------
 // IPC handlers
 // ------------------------------
+
+// Backup - export and import and auto restore
+ipcMain.handle("backup:export", async () => await exportBackup());
+ipcMain.handle("backup:import", async () => await importBackup());
+ipcMain.handle("backup:restoreAuto", async () => await restoreAutoBackup());
+
+
 
 // Combine components
 ipcMain.handle("inventory:combineSet", async (event, { setName }) => {

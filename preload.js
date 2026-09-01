@@ -51,5 +51,14 @@ contextBridge.exposeInMainWorld("api", {
         ipcRenderer.invoke("item:getImage", { name, type }),
 
     getPriceHistory: (slug) =>
-        ipcRenderer.invoke("item:getPriceHistory", { slug })
+        ipcRenderer.invoke("item:getPriceHistory", { slug }),
+
+    exportBackup: () => 
+        ipcRenderer.invoke("backup:export"),
+
+    importBackup: () => 
+        ipcRenderer.invoke("backup:import"),
+
+    restoreAutoBackup: () => 
+        ipcRenderer.invoke("backup:restoreAuto")
 });

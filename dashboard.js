@@ -82,6 +82,24 @@ function switchView(viewName) {
     event.target.classList.add("active");
 }
 
+// Settings Panel
+function toggleSettingsPanel() {
+    const panel = document.getElementById("settingsPanel");
+    panel.style.display = panel.style.display === "none" ? "block" : "none";
+}
+
+document.getElementById("settingsPanel").addEventListener("click", (event) => {
+    if (event.target.id === "settingsPanel") {
+        toggleSettingsPanel();
+    }
+});
+
+document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+        document.getElementById("settingsPanel").style.display = "none";
+    }
+});
+
 // ------------------------------
 // ADD ITEM
 // ------------------------------
@@ -700,6 +718,76 @@ function sortBy(column) {
     renderTable(inventory);
 }
 
+
+// ------------------------------
+// BACKUP / RESTORE
+// ------------------------------
+
+async function exportBackupHandler() {
+    const result = await window.api.exportBackup();
+
+    if (!result.success) {
+        if (result.reason !== "Export cancelled.") {
+            alert(result.reason);
+        }
+        return;
+    }
+
+    alert(`Backup saved to:\n${result.path}`);
+}
+
+async function importBackupHandler() {
+    const confirmed = confirm(
+        "Importing a backup will overwrite your current inventory and build tracker data. This cannot be undone. Continue?"
+    );
+
+    if (!confirmed) return;
+
+    const result = await window.api.importBackup();
+
+    if (!result.success) {
+        if (result.reason !== "Import cancelled.") {
+            alert(result.reason);
+        }
+        return;
+    }
+
+    inventory = result.inventory;
+    renderTable(inventory);
+    await refreshTotals();
+
+    const tracker = await window.api.getBuildTracker();
+    await renderBuildTracker(tracker);
+
+    alert("Backup imported successfully.");
+}
+
+// Restore Auto Bakcup
+
+async function restoreAutoBackupHandler() {
+    const confirmed = confirm(
+        "This will restore your most recent auto-backup, overwriting your current inventory and build tracker. Continue?"
+    );
+
+    if (!confirmed) return;
+
+    const result = await window.api.restoreAutoBackup();
+
+    if (!result.success) {
+        alert(result.reason);
+        return;
+    }
+
+    inventory = result.inventory;
+    renderTable(inventory);
+    await refreshTotals();
+
+    const tracker = await window.api.getBuildTracker();
+    await renderBuildTracker(tracker);
+
+    const backupDate = new Date(result.exportedAt).toLocaleString();
+    alert(`Restored auto-backup from ${backupDate}.`);
+}
 
 
 // ------------------------------
