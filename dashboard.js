@@ -484,8 +484,14 @@ async function renderBuildTracker(rows) {
     container.innerHTML = "<p>Loading...</p>";
 
     let html = `<div class="build-tracker-grid">`;
+    const filteredRows = rows.filter(trackedSet => {
+        if (buildTrackerFilter === "all") return true;
+        if (buildTrackerFilter === "warframe") return trackedSet.type.includes("Warframe");
+        if (buildTrackerFilter === "weapon") return !trackedSet.type.includes("Warframe");
+        return true;
+    });
 
-    for (const trackedSet of rows) {
+    for (const trackedSet of filteredRows) {
         const components = await window.api.getFarmInfo(trackedSet.name, trackedSet.type);
         const requiredParts = components.filter(c => isTrackableComponent(c, trackedSet.type));
         const imageName = await window.api.getItemImage(trackedSet.name, trackedSet.type);
@@ -497,7 +503,11 @@ async function renderBuildTracker(rows) {
         html += `<div class="set-card">`;
 
         if (imageUrl) {
-            html += `<img src="${imageUrl}" class="set-card-image" alt="${trackedSet.name}">`;
+            const showBadge = isArchwingRelated(trackedSet.name);
+            html += `<div class="image-container">
+                <img src="${imageUrl}" class="set-card-image" alt="${trackedSet.name}">
+                ${showBadge ? `<span class="archwing-badge" title="Archwing-related">🚀</span>` : ""}
+            </div>`;
         }
 
         html += `<h3 onclick="showFarmInfo({name: '${safeSetNameForClick}', set: '${safeSetNameForClick}', type: '${trackedSet.type}'})">${trackedSet.name}</h3>`;
@@ -645,6 +655,16 @@ async function addItemToBuildTracker() {
     document.getElementById("buildTrackerName").value = "";
     selectedBuildTrackerItem = null;
 }
+
+// sorting for build tracker page
+
+let buildTrackerFilter = "all";
+
+function setBuildTrackerFilter(filter) {
+    buildTrackerFilter = filter;
+    renderBuildTracker(buildTracker);
+}
+
 
 // ------------------------------
 // RELIC INVENTORY
@@ -832,6 +852,14 @@ function handleRelicSearchKeydown(event) {
     }
 }
 
+function normalizeRelicName(input) {
+    const parts = input.trim().split(/\s+/);
+    if (parts.length < 2) return input.trim();
+    const tier = parts[0].charAt(0).toUpperCase() + parts[0].slice(1).toLowerCase();
+    const code = parts[1].toUpperCase();
+    return `${tier} ${code}`;
+}
+
 function getRelicImageName(relicFullName) {
     const tier = relicFullName.trim().split(" ")[0];
     const tierMap = {
@@ -847,9 +875,10 @@ async function addRelicHandler() {
     const nameInput = document.getElementById("relicSearchName").value.trim();
     if (!nameInput) return;
 
-    const imageName = getRelicImageName(nameInput);
+    const normalizedName = normalizeRelicName(nameInput);
+    const imageName = getRelicImageName(normalizedName);
 
-    relicInventory = await window.api.addRelic(nameInput, imageName);
+    relicInventory = await window.api.addRelic(normalizedName, imageName);
     renderRelicGrid(relicInventory);
 
     document.getElementById("relicSearchName").value = "";
@@ -1264,3 +1293,27 @@ function hideSuggestions() {
         wfcdItems = [];
     }
 })();
+
+// ArchWing Specific Lookup
+
+wingRelatedNames = new Set();
+
+(async function loadArchwingRelatedNames() {
+    try {
+        const response = await fetch("https://api.warframestat.us/items?only=name,type");
+        const items = await response.json();
+
+        archwingRelatedNames = new Set(
+            items
+                .filter(i => i.type && i.type.includes("Arch"))
+                .map(i => i.name.trim().toLowerCase())
+        );
+    } catch (err) {
+        console.log("Failed to load archwing-related names:", err.message);
+        archwingRelatedNames = new Set();
+    }
+})();
+
+function isArchwingRelated(itemName) {
+    return archwingRelatedNames.has(itemName.trim().toLowerCase());
+}

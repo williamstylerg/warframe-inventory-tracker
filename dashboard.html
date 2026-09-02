@@ -183,6 +183,7 @@
         }
 
         .set-card {
+            position: relative;
             background: #1e1e1e;
             border: 1px solid #333;
             border-radius: 8px;
@@ -285,6 +286,47 @@
             margin: 0 0 8px 0;
             font-size: 0.9em;
         }
+
+        .image-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .image-container {
+            position: relative;
+            width: 100%;
+        }
+
+        .archwing-badge {
+            position: absolute;
+            bottom: 17px;
+            right: 5px;
+            background: rgba(0,0,0,0.75);
+            border-radius: 50%;
+            width: 22px;
+            height: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        #farmModal {
+            z-index: 9999;
+        }
+
+        #priceHistoryModal {
+            z-index: 9999;
+        }
+
+        #settingsPanel {
+            z-index: 9999;
+        }
+
+        #relicRewardsModal {
+            z-index: 9999;
+        }
     </style>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script> 
@@ -347,6 +389,9 @@
                     <input id="buildTrackerName" placeholder="Item Name" oninput="showBuildTrackerSuggestions(this.value)">
                     <div id="buildTrackerSuggestions" ...></div>
                     <button onclick="addItemToBuildTracker()">Add to Build Tracker</button>
+                    <button onclick="setBuildTrackerFilter('all')">All</button>
+                    <button onclick="setBuildTrackerFilter('warframe')">Warframes</button>
+                    <button onclick="setBuildTrackerFilter('weapon')">Weapons</button>
                 </div>
 
                 <table id="buildTrackerTable" style="margin-top: 10px;"></table>
