@@ -506,7 +506,7 @@ async function renderBuildTracker(rows) {
             const showBadge = isArchwingRelated(trackedSet.name);
             html += `<div class="image-container">
                 <img src="${imageUrl}" class="set-card-image" alt="${trackedSet.name}">
-                ${showBadge ? `<span class="archwing-badge" title="Archwing-related">🚀</span>` : ""}
+                ${showBadge ? `<img src="assets/archwing-icon.png" class="archwing-badge" title="Archwing-related">` : ""}
             </div>`;
         }
 
@@ -1296,7 +1296,7 @@ function hideSuggestions() {
 
 // ArchWing Specific Lookup
 
-wingRelatedNames = new Set();
+archwingRelatedNames = new Set();
 
 (async function loadArchwingRelatedNames() {
     try {
