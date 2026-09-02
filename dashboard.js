@@ -13,6 +13,9 @@ let wfcdItems = []; // WFCD catalog for build-tracker autocomplete
 document.addEventListener("DOMContentLoaded", async () => {
     await refreshInventory();
     await refreshTotals();
+    const tracker = await window.api.getBuildTracker();
+    await renderBuildTracker(tracker);
+    await refreshRelics();
 });
 
 
@@ -147,6 +150,21 @@ async function backfillTiersHandler() {
     inventory = await window.api.getInventory();
     renderTable(inventory);
     alert(`Updated tier data for ${result.updated} of ${result.total} items.`);
+}
+
+async function refreshAllRelicDataHandler() {
+    const confirmed = confirm(
+        "This will refetch all relic drop data from the live source. It may take a moment. Continue?"
+    );
+    if (!confirmed) return;
+
+    const result = await window.api.refreshAllRelicData();
+
+    if (result.success) {
+        alert(`Updated ${result.count} relics.`);
+    } else {
+        alert("Failed to update relic data: " + result.reason);
+    }
 }
 
 // ------------------------------
@@ -625,6 +643,72 @@ async function addItemToBuildTracker() {
 
     document.getElementById("buildTrackerName").value = "";
     selectedBuildTrackerItem = null;
+}
+
+// ------------------------------
+// RELIC INVENTORY
+// ------------------------------
+
+let relicInventory = [];
+
+async function refreshRelics() {
+    relicInventory = await window.api.getRelics();
+    renderRelicGrid(relicInventory);
+}
+
+function renderRelicGrid(relics) {
+    const container = document.getElementById("relicGrid");
+
+    if (relics.length === 0) {
+        container.innerHTML = "<p>No relics tracked yet.</p>";
+        return;
+    }
+
+    let html = "";
+    for (const relic of relics) {
+        const safeName = relic.name.replace(/'/g, "\\'");
+        const imageUrl = relic.imageName ? `https://cdn.warframestat.us/img/${relic.imageName}` : null;
+
+        html += `<div class="set-card">`;
+        if (imageUrl) {
+            html += `<img src="${imageUrl}" class="set-card-image" alt="${relic.name}">`;
+        }
+        html += `<h3>${relic.name}</h3>`;
+        html += `<div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+            <button onclick="adjustRelicQuantity('${safeName}', -1)">-</button>
+            <span>${relic.quantity}</span>
+            <button onclick="adjustRelicQuantity('${safeName}', 1)">+</button>
+        </div>`;
+        html += `<button class="delete-btn" onclick="removeRelicHandler('${safeName}')">Remove</button>`;
+        html += `</div>`;
+    }
+
+    container.innerHTML = html;
+}
+
+async function adjustRelicQuantity(name, delta) {
+    const relic = relicInventory.find(r => r.name === name);
+    const newQuantity = (relic ? relic.quantity : 0) + delta;
+
+    relicInventory = await window.api.updateRelicQuantity(name, newQuantity);
+    renderRelicGrid(relicInventory);
+}
+
+async function removeRelicHandler(name) {
+    relicInventory = await window.api.removeRelic(name);
+    renderRelicGrid(relicInventory);
+}
+
+async function addRelicHandler() {
+    const nameInput = document.getElementById("relicSearchName").value.trim();
+    if (!nameInput) return;
+
+    const imageName = null; // we'll wire this up to WFCD relic data in step 2 of the overall plan
+
+    relicInventory = await window.api.addRelic(nameInput, imageName);
+    renderRelicGrid(relicInventory);
+
+    document.getElementById("relicSearchName").value = "";
 }
 
 // ------------------------------

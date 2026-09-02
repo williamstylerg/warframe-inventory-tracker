@@ -263,6 +263,7 @@
             <h1>Warframe Tracker</h1>
             <button class="nav-btn active" onclick="switchView('price')">Price Tracker</button>
             <button class="nav-btn" onclick="switchView('build')">Build Tracker</button>
+            <button class="nav-btn" onclick="switchView('relics')">Relics</button>
 
             <div style="margin-top:auto;">
                 <button class="nav-btn" onclick="toggleSettingsPanel()" style="text-align:left;">⚙ Settings</button>
@@ -301,6 +302,15 @@
                 <table id="buildTrackerTable" style="margin-top: 10px;"></table>
             </div>
 
+            <div id="view-relics" class="view" style="display:none;">
+                <h2>Relic Inventory</h2>
+                <input id="relicSearchName" placeholder="Relic Name (e.g. Meso N2)" oninput="showRelicSuggestions(this.value)">
+                <div id="relicSuggestions" style="background:#222; border:1px solid #333; display:none; position:absolute; width:200px; z-index: 10;"></div>
+                <button onclick="addRelicHandler()">Add Relic</button>
+
+                <div id="relicGrid" class="build-tracker-grid" style="margin-top:16px;"></div>
+            </div>
+
         </main>
     </div>
 
@@ -320,15 +330,20 @@
 
             <div style="margin-bottom:24px;">
                 <h3>Data Management</h3>
-                <button onclick="restoreAutoBackupHandler()" style="background:#444;">Restore Last Auto-Backup</button>
-                <button onclick="backfillTiersHandler()" style="background:#444;">Recompute Rarity Tiers</button>
+                <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-start;">
+                    <button onclick="restoreAutoBackupHandler()" style="background:#444;">Restore Last Auto-Backup</button>
+                    <button onclick="backfillTiersHandler()" style="background:#444;">Recompute Rarity Tiers</button>
+                </div>
             </div>
 
             <div style="margin-top:20px;">
                 <h3>Advanced</h3>
-                <button onclick="clearFarmCacheHandler()" style="background:#444;">Clear Farm Data Cache</button>
+                <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-start;">
+                    <button onclick="clearFarmCacheHandler()" style="background:#444;">Clear Farm Data Cache</button>
+                    <button onclick="refreshAllRelicDataHandler()" style="background:#444;">Update All Relic Data</button>
+                    <p style="font-size:0.8em; color:#888; margin:0;">This can take a moment — it refetches the entire relic drop table.</p>
+                </div>
             </div>
-
 
         </div>
     </div> 

@@ -25,7 +25,8 @@
       "dashboard.html",
       "dashboard.js",
       "styles.css",
-      "assets/**/*"
+      "assets/**/*",
+      "bundled-relic-cache.json"
     ],
     "directories": {
       "buildResources": "build",

@@ -66,5 +66,23 @@ contextBridge.exposeInMainWorld("api", {
         ipcRenderer.invoke("cache:clearFarmData"),
     
     backfillTiers: () => 
-        ipcRenderer.invoke("inventory:backfillTiers")
+        ipcRenderer.invoke("inventory:backfillTiers"),
+
+    getRelics: () => 
+        ipcRenderer.invoke("relics:get"),
+
+    addRelic: (name, imageName) => 
+        ipcRenderer.invoke("relics:add", { name, imageName }),
+
+    updateRelicQuantity: (name, newQuantity) => 
+        ipcRenderer.invoke("relics:updateQuantity", { name, newQuantity }),
+
+    removeRelic: (name) => 
+        ipcRenderer.invoke("relics:remove", { name }),
+
+    getRelicDropData: (relicName) => 
+        ipcRenderer.invoke("relics:getDropData", { relicName }),
+
+    refreshAllRelicData: () => 
+        ipcRenderer.invoke("relics:refreshAllData")
 });
