@@ -142,6 +142,7 @@ document.getElementById("settingsPanel").addEventListener("click", (event) => {
 document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
         document.getElementById("settingsPanel").style.display = "none";
+        document.getElementById("relicRewardsModal").style.display = "none";
     }
 });
 
@@ -658,14 +659,15 @@ async function refreshRelics() {
 
 function renderRelicGrid(relics) {
     const container = document.getElementById("relicGrid");
+    const sorted = sortRelics(relics);
 
-    if (relics.length === 0) {
+    if (sorted.length === 0) {
         container.innerHTML = "<p>No relics tracked yet.</p>";
         return;
     }
 
     let html = "";
-    for (const relic of relics) {
+    for (const relic of sorted) {
         const safeName = relic.name.replace(/'/g, "\\'");
         const imageUrl = relic.imageName ? `https://cdn.warframestat.us/img/${relic.imageName}` : null;
 
@@ -673,18 +675,19 @@ function renderRelicGrid(relics) {
         if (imageUrl) {
             html += `<img src="${imageUrl}" class="set-card-image" alt="${relic.name}">`;
         }
-        html += `<h3>${relic.name}</h3>`;
+        const safeNameForClick = relic.name.replace(/'/g, "\\'");
+        html += `<h3 class="item-name" onclick="showRelicRewards('${safeNameForClick}')">${relic.name}</h3>`;
         html += `<div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
             <button onclick="adjustRelicQuantity('${safeName}', -1)">-</button>
             <span>${relic.quantity}</span>
             <button onclick="adjustRelicQuantity('${safeName}', 1)">+</button>
         </div>`;
-        html += `<button class="delete-btn" onclick="removeRelicHandler('${safeName}')">Remove</button>`;
         html += `</div>`;
     }
 
     container.innerHTML = html;
 }
+
 
 async function adjustRelicQuantity(name, delta) {
     const relic = relicInventory.find(r => r.name === name);
@@ -710,6 +713,197 @@ async function addRelicHandler() {
 
     document.getElementById("relicSearchName").value = "";
 }
+
+// Relic page ordering
+
+const RELIC_TIER_ORDER = ["Lith", "Meso", "Neo", "Axi"];
+
+function sortRelics(relics) {
+    return [...relics].sort((a, b) => {
+        const [tierA, nameA] = a.name.split(" ");
+        const [tierB, nameB] = b.name.split(" ");
+
+        const tierIndexA = RELIC_TIER_ORDER.indexOf(tierA);
+        const tierIndexB = RELIC_TIER_ORDER.indexOf(tierB);
+
+        if (tierIndexA !== tierIndexB) return tierIndexA - tierIndexB;
+        return nameA.localeCompare(nameB);
+    });
+}
+
+
+// Relic front end for Autofill
+
+let relicNameList = [];
+
+(async function loadRelicNameList() {
+    try {
+        const response = await fetch("https://drops.warframestat.us/data/relics.json");
+        const data = await response.json();
+        const relicsList = data.relics || data;
+
+        const seen = new Set();
+        relicNameList = [];
+        for (const entry of relicsList) {
+            if (!entry.tier || !entry.relicName) continue;
+            const fullName = `${entry.tier} ${entry.relicName}`;
+            if (!seen.has(fullName)) {
+                seen.add(fullName);
+                relicNameList.push(fullName);
+            }
+        }
+    } catch (err) {
+        console.log("Failed to load relic name list:", err.message);
+        relicNameList = [];
+    }
+})();
+
+// Relic Autofill Function
+
+let relicSuggestionIndex = -1;
+let currentRelicSuggestions = [];
+
+function showRelicSuggestions(value) {
+    const box = document.getElementById("relicSuggestions");
+    relicSuggestionIndex = -1;
+
+    if (!value.trim()) {
+        box.style.display = "none";
+        currentRelicSuggestions = [];
+        return;
+    }
+
+    const v = value.toLowerCase();
+    currentRelicSuggestions = relicNameList.filter(name => name.toLowerCase().includes(v)).slice(0, 10);
+
+    if (currentRelicSuggestions.length === 0) {
+        box.style.display = "none";
+        return;
+    }
+
+    renderRelicSuggestionBox();
+    box.style.display = "block";
+}
+
+function renderRelicSuggestionBox() {
+    const box = document.getElementById("relicSuggestions");
+    box.innerHTML = currentRelicSuggestions
+        .map((name, i) => {
+            const highlighted = i === relicSuggestionIndex ? "background:#444;" : "";
+            const safeName = name.replace(/'/g, "\\'");
+            return `<div style="${highlighted}" onclick="pickRelicSuggestion('${safeName}')">${name}</div>`;
+        })
+        .join("");
+}
+
+function pickRelicSuggestion(name) {
+    document.getElementById("relicSearchName").value = name;
+    document.getElementById("relicSuggestions").style.display = "none";
+    currentRelicSuggestions = [];
+    relicSuggestionIndex = -1;
+}
+
+function handleRelicSearchKeydown(event) {
+    if (currentRelicSuggestions.length === 0) {
+        if (event.key === "Enter") {
+            addRelicHandler();
+        }
+        return;
+    }
+
+    if (event.key === "ArrowDown") {
+        event.preventDefault();
+        relicSuggestionIndex = Math.min(relicSuggestionIndex + 1, currentRelicSuggestions.length - 1);
+        renderRelicSuggestionBox();
+    } else if (event.key === "ArrowUp") {
+        event.preventDefault();
+        relicSuggestionIndex = Math.max(relicSuggestionIndex - 1, -1);
+        renderRelicSuggestionBox();
+    } else if (event.key === "Enter") {
+        event.preventDefault();
+        if (relicSuggestionIndex >= 0) {
+            pickRelicSuggestion(currentRelicSuggestions[relicSuggestionIndex]);
+        }
+        addRelicHandler();
+    } else if (event.key === "Escape") {
+        document.getElementById("relicSuggestions").style.display = "none";
+        currentRelicSuggestions = [];
+        relicSuggestionIndex = -1;
+    }
+}
+
+function getRelicImageName(relicFullName) {
+    const tier = relicFullName.trim().split(" ")[0];
+    const tierMap = {
+        Lith: "RelicLithD.png",
+        Meso: "RelicMesoD.png",
+        Neo: "RelicNeoD.png",
+        Axi: "RelicAxiD.png"
+    };
+    return tierMap[tier] || null;
+}
+
+async function addRelicHandler() {
+    const nameInput = document.getElementById("relicSearchName").value.trim();
+    if (!nameInput) return;
+
+    const imageName = getRelicImageName(nameInput);
+
+    relicInventory = await window.api.addRelic(nameInput, imageName);
+    renderRelicGrid(relicInventory);
+
+    document.getElementById("relicSearchName").value = "";
+}
+
+async function backfillRelicImagesHandler() {
+    for (const relic of relicInventory) {
+        if (!relic.imageName) {
+            const imageName = getRelicImageName(relic.name);
+            if (imageName) {
+                await window.api.updateRelicImage(relic.name, imageName);
+            }
+        }
+    }
+    await refreshRelics();
+    alert("Relic images updated.");
+}
+
+// ------------------------------
+// Relic Reward Modal
+// ------------------------------
+
+async function showRelicRewards(relicName) {
+    const dropData = await window.api.getRelicDropData(relicName);
+    const body = document.getElementById("relicRewardsBody");
+
+    if (!dropData) {
+        body.innerHTML = `<p>No drop data found for ${relicName}.</p>`;
+        document.getElementById("relicRewardsModal").style.display = "block";
+        return;
+    }
+
+    const intactRewards = dropData.rewards.Intact || [];
+
+    let html = `<h2>${relicName} (Intact)</h2><ul>`;
+    for (const reward of intactRewards) {
+        html += `<li>${reward.itemName} — ${reward.chance}% (${reward.rarity})</li>`;
+    }
+    html += `</ul>`;
+
+    body.innerHTML = html;
+    document.getElementById("relicRewardsModal").style.display = "block";
+}
+
+function closeRelicRewardsModal() {
+    document.getElementById("relicRewardsModal").style.display = "none";
+}
+
+document.getElementById("relicRewardsModal").addEventListener("click", (event) => {
+    if (event.target.id === "relicRewardsModal") {
+        closeRelicRewardsModal();
+    }
+});
+
 
 // ------------------------------
 // PRICE HISTORY MODAL
@@ -869,6 +1063,57 @@ function sortBy(column) {
     });
 
     renderTable(inventory);
+}
+
+// ------------------------------
+// Relic Recommendation Sorting
+// ------------------------------
+
+let recommendationGroupMode = "target";
+let currentRecommendations = [];
+
+async function loadRecommendations() {
+    document.getElementById("recommendationList").innerHTML = "<p>Loading...</p>";
+    const recommendations = await window.api.getRelicRecommendations();
+    renderRecommendations(recommendations);
+}
+
+function toggleRecommendationGrouping() {
+    recommendationGroupMode = recommendationGroupMode === "target" ? "relic" : "target";
+    renderRecommendations(currentRecommendations);
+}
+
+function renderRecommendations(recommendations) {
+    currentRecommendations = recommendations;
+    const container = document.getElementById("recommendationList");
+
+    if (recommendations.length === 0) {
+        container.innerHTML = "<p>No recommendations yet — add relics or track sets to see suggestions.</p>";
+        return;
+    }
+
+    const grouped = {};
+    for (const rec of recommendations) {
+        const key = recommendationGroupMode === "target"
+            ? `${rec.targetSet} — ${rec.targetItem}`
+            : rec.relicName;
+        if (!grouped[key]) grouped[key] = [];
+        grouped[key].push(rec);
+    }
+
+    let html = "";
+    for (const key in grouped) {
+        html += `<h3>${key}</h3><ul>`;
+        for (const rec of grouped[key]) {
+            const label = recommendationGroupMode === "target"
+                ? `${rec.relicName} (${rec.relicQuantity} owned) — ${rec.chance}% at ${rec.minRefinement}`
+                : `${rec.targetItem} (${rec.targetSet}) — ${rec.chance}% at ${rec.minRefinement}`;
+            html += `<li>${label}</li>`;
+        }
+        html += `</ul>`;
+    }
+
+    container.innerHTML = html;
 }
 
 

@@ -84,5 +84,11 @@ contextBridge.exposeInMainWorld("api", {
         ipcRenderer.invoke("relics:getDropData", { relicName }),
 
     refreshAllRelicData: () => 
-        ipcRenderer.invoke("relics:refreshAllData")
+        ipcRenderer.invoke("relics:refreshAllData"),
+
+    getRelicRecommendations: () => 
+        ipcRenderer.invoke("relics:getRecommendations"),
+
+    updateRelicImage: (name, imageName) => 
+        ipcRenderer.invoke("relics:updateImage", { name, imageName })
 });

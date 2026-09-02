@@ -233,6 +233,58 @@
             font-weight: bold;
             text-decoration: underline;
         }
+
+        .content {
+            flex-grow: 1;
+            padding: 0 20px 20px 20px;
+            overflow-y: auto;
+        }
+
+        .view-header {
+            position: sticky;
+            top: 0;
+            background: #111;
+            z-index: 15;
+            padding-top: 20px;
+            padding-bottom: 12px;
+            margin-bottom: 12px;
+            margin-left: -20px;
+            margin-right: -20px;
+            padding-left: 20px;
+            padding-right: 20px;
+            border-bottom: 1px solid #333;
+        }
+
+        .relic-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 12px;
+        }
+
+        .relic-card {
+            background: #1e1e1e;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .relic-card-image {
+            width: 100%;
+            height: 80px;
+            object-fit: contain;
+            background: #111;
+            border-radius: 6px;
+            margin-bottom: 6px;
+        }
+
+        .relic-card h3 {
+            margin: 0 0 8px 0;
+            font-size: 0.9em;
+        }
     </style>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script> 
@@ -245,7 +297,7 @@
     </div>
 </div>
 
-<div id="priceHistoryModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7);">
+<div id="priceHistoryModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:100;">
     <div style="background:#222; max-width:700px; margin:40px auto; padding:20px; border-radius:6px; max-height:85vh; overflow-y:auto;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
             <h2 id="priceHistoryTitle" style="margin:0;"></h2>
@@ -273,55 +325,71 @@
         <main class="content">
 
             <div id="view-price" class="view">
-                <div>
+                <div class="view-header">
                     <input id="itemName" placeholder="Item Name" oninput="showSuggestions(this.value)">
                     <div id="suggestions"></div>
-
-                    <input id="itemSlug" placeholder="Slug">
-
+                    <input id="itemSlug" type="hidden">
                     <button onclick="addItem()">Add Item</button>
                     <button onclick="updatePrices()">Update Prices</button>
-                    <button onclick="exportBackupHandler()">Export Backup</button>
-                    <button onclick="importBackupHandler()">Import Backup</button>
-                </div>
 
-                <div id="summaryBox" style="margin-left: 20px; font-size: 1.1em;">
-                    <div><strong>Total Unique Items:</strong> <span id="totalUnique">0</span></div>
-                    <div><strong>Total Platinum Value:</strong> <span id="totalPlat">0</span></div>
+                    <div id="summaryBox" style="margin-top: 8px; font-size: 1.1em;">
+                        <div><strong>Total Unique Items:</strong> <span id="totalUnique">0</span></div>
+                        <div><strong>Total Platinum Value:</strong> <span id="totalPlat">0</span></div>
+                    </div>
                 </div>
 
                 <table id="inventoryTable"></table>
             </div>
 
             <div id="view-build" class="view" style="display:none;">
-                <h2>Build Tracker</h2>
-                <input id="buildTrackerName" placeholder="Item Name" oninput="showBuildTrackerSuggestions(this.value)">
-                <div id="buildTrackerSuggestions" style="background:#222; border:1px solid #333; display:none; position:absolute; width:200px; z-index: 10;"></div>
-                <button onclick="addItemToBuildTracker()">Add to Build Tracker</button>
+                <div class="view-header">
+                    <h2>Build Tracker</h2>
+                    <input id="buildTrackerName" placeholder="Item Name" oninput="showBuildTrackerSuggestions(this.value)">
+                    <div id="buildTrackerSuggestions" ...></div>
+                    <button onclick="addItemToBuildTracker()">Add to Build Tracker</button>
+                </div>
 
                 <table id="buildTrackerTable" style="margin-top: 10px;"></table>
             </div>
 
             <div id="view-relics" class="view" style="display:none;">
-                <h2>Relic Inventory</h2>
-                <input id="relicSearchName" placeholder="Relic Name (e.g. Meso N2)" oninput="showRelicSuggestions(this.value)">
-                <div id="relicSuggestions" style="background:#222; border:1px solid #333; display:none; position:absolute; width:200px; z-index: 10;"></div>
-                <button onclick="addRelicHandler()">Add Relic</button>
+                <div class="view-header">
+                    <h2>Relic Inventory</h2>
+                    <input id="relicSearchName" placeholder="Relic Name (e.g. Meso N2)" oninput="showRelicSuggestions(this.value)" onkeydown="handleRelicSearchKeydown(event)">
+                    <div id="relicSuggestions" style="background:#222; border:1px solid #333; display:none; position:absolute; width:200px; z-index: 10;"></div>
+                    <button onclick="addRelicHandler()">Add Relic</button>
+                    <button onclick="toggleRecommendationGrouping()">Toggle Grouping</button>
+                    <button onclick="loadRecommendations()">Get Recommendations</button>
+                </div>
 
-                <div id="relicGrid" class="build-tracker-grid" style="margin-top:16px;"></div>
+                <div id="relicGrid" class="relic-grid" style="margin-top:16px;"></div>
+
+                <div style="margin-top:32px;">
+                    <div class="view-header" style="display:flex; justify-content:space-between; align-items:center;">
+                        <h2 style="margin:0;">Recommendations</h2>                    
+                    </div>
+                    <div id="recommendationList"></div>
+                </div>
             </div>
 
         </main>
     </div>
 
-    <div id="farmModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7);">
+    <div id="farmModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:100;">
         <div style="background:#222; max-width:500px; margin:60px auto; padding:20px; border-radius:6px; max-height:80vh; overflow-y:auto;">
             <button onclick="closeFarmModal()" style="float:right;">Close</button>
             <div id="farmModalBody"></div>
         </div>
     </div>
 
-    <div id="settingsPanel" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85);">
+    <div id="relicRewardsModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:100;">
+        <div style="background:#222; max-width:500px; margin:60px auto; padding:20px; border-radius:6px; max-height:80vh; overflow-y:auto;">
+            <button onclick="closeRelicRewardsModal()" style="float:right;">Close</button>
+            <div id="relicRewardsBody"></div>
+        </div>
+    </div> 
+
+    <div id="settingsPanel" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:100;">
         <div style="background:#222; max-width:500px; margin:60px auto; padding:24px; border-radius:6px; max-height:80vh; overflow-y:auto;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
                 <h2 style="margin:0;">Settings</h2>
@@ -333,6 +401,7 @@
                 <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-start;">
                     <button onclick="restoreAutoBackupHandler()" style="background:#444;">Restore Last Auto-Backup</button>
                     <button onclick="backfillTiersHandler()" style="background:#444;">Recompute Rarity Tiers</button>
+                    <button onclick="backfillRelicImagesHandler()" style="background:#444;">Backfill Relic Images</button>
                 </div>
             </div>
 

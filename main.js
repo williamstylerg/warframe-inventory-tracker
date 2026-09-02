@@ -202,13 +202,15 @@ function chanceToTier(chance) {
 function assignRarityTiers(components) {
     return components.map(comp => {
         const summarized = summarizeDrops(comp.drops || []);
-        if (summarized.length === 0) return { ...comp, tier: null };
-
-        const medianChance = median(summarized.map(d => d.chance));
-        return { ...comp, tier: chanceToTier(medianChance) };
+        const medianChance = summarized.length ? median(summarized.map(d => d.chance)) : null;
+        return {
+            name: comp.name,
+            ducats: comp.ducats,
+            tier: chanceToTier(medianChance),
+            drops: summarized
+        };
     });
 }
-
     // Fetch farm data for mods
 
 async function fetchModFarmData(modName) {
@@ -781,6 +783,19 @@ function removeRelic(name) {
     return relics;
 }
 
+function updateRelicImage(name, imageName) {
+    let relics = loadRelicInventory();
+    const key = name.trim().toLowerCase();
+
+    const relic = relics.find(r => r.name.trim().toLowerCase() === key);
+    if (relic) {
+        relic.imageName = imageName;
+        saveRelicInventory(relics);
+    }
+
+    return relics;
+}
+
 // ------------------------------
 // Relic Drop Data storage (drops.warframestat.us)
 // ------------------------------
@@ -876,6 +891,70 @@ async function refreshAllRelicData() {
 }
 
 // ------------------------------
+// Relic Recommendation Engine
+// ------------------------------
+
+function isTrackableComponentServer(component, itemType) {
+    if (itemType === "Warframe Part" || itemType.includes("Warframe")) {
+        return ["Blueprint", "Chassis", "Neuroptics", "Systems"].includes(component.name);
+    }
+    return component.drops && component.drops.length > 0;
+}
+
+async function getRelicRecommendations() {
+    const relics = loadRelicInventory();
+    const buildTracker = loadBuildTracker();
+    const inventory = loadInventory();
+    const recommendations = [];
+
+    for (const relic of relics) {
+        if (relic.quantity <= 0) continue;
+
+        const dropData = await fetchRelicDropData(relic.name);
+        if (!dropData) continue;
+
+        for (const trackedSet of buildTracker) {
+            const components = await fetchFarmData(trackedSet.name, trackedSet.type);
+            const requiredParts = components.filter(c => isTrackableComponentServer(c, trackedSet.type));
+
+            for (const part of requiredParts) {
+                const isPrime = part.ducats !== undefined;
+                const fullPartName = `${trackedSet.name} ${part.name}`;
+
+                const owned = isPrime
+                    ? inventory.some(i => normalizeName(i.name) === normalizeName(fullPartName) && i.quantity > 0)
+                    : (trackedSet.obtainedParts || []).includes(part.name);
+
+                if (owned) continue;
+
+                const states = ["Intact", "Exceptional", "Flawless", "Radiant"];
+                for (const state of states) {
+                    const rewards = dropData.rewards[state] || [];
+                    const match = rewards.find(r => {
+                        const normalized = r.itemName.trim().toLowerCase().replace(/\s+blueprint$/i, "");
+                        return normalized === fullPartName.trim().toLowerCase();
+                    });
+
+                    if (match) {
+                        recommendations.push({
+                            relicName: relic.name,
+                            relicQuantity: relic.quantity,
+                            targetItem: fullPartName,
+                            targetSet: trackedSet.name,
+                            minRefinement: state,
+                            chance: match.chance
+                        });
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    return recommendations;
+}
+
+// ------------------------------
 // IPC handlers
 // ------------------------------
 
@@ -962,16 +1041,18 @@ ipcMain.handle("inventory:add", async (event, { name, slug }) => {
 
     // Direction 1: ensure this item's parent set is tracked, regardless of whether
     // the added item was the whole set or just one component
-    let tracker = loadBuildTracker();
-    const trackerKey = normalizeName(existing.set);
-    const trackerExisting = tracker.find(i => normalizeName(i.name) === trackerKey);
+    if (existing.type === "Warframe Part" || existing.type === "Weapon Part") {
+        let tracker = loadBuildTracker();
+        const trackerKey = normalizeName(existing.set);
+        const trackerExisting = tracker.find(i => normalizeName(i.name) === trackerKey);
 
-    if (!trackerExisting) {
-        tracker.push({
-            name: existing.set,
-            type: existing.type
-        });
-        saveBuildTracker(tracker);
+        if (!trackerExisting) {
+            tracker.push({
+                name: existing.set,
+                type: existing.type
+            });
+            saveBuildTracker(tracker);
+        }
     }
 
     return inventory;
@@ -1125,6 +1206,12 @@ ipcMain.handle("relics:getDropData", async (event, { relicName }) => {
 
 // Relic Cache Refresh
 ipcMain.handle("relics:refreshAllData", async () => await refreshAllRelicData());
+
+// Relic Recommendation Handler
+ipcMain.handle("relics:getRecommendations", async () => await getRelicRecommendations());
+
+// Relic Image handler
+ipcMain.handle("relics:updateImage", (event, { name, imageName }) => updateRelicImage(name, imageName));
 
 // App lifecycle
 app.whenReady().then(() => {
