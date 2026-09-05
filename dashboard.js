@@ -491,6 +491,19 @@ async function uncheckOffComponent(setName, partName, isPrime) {
     await renderBuildTracker(tracker);
 }
 
+let buildTrackerFilter = "all";
+let buildTrackerPrimeFilter = "all"; // "all" | "prime" | "nonprime"
+
+function setBuildTrackerFilter(filter) {
+    buildTrackerFilter = filter;
+    renderBuildTracker(buildTracker);
+}
+
+function setBuildTrackerPrimeFilter(filter) {
+    buildTrackerPrimeFilter = filter;
+    renderBuildTracker(buildTracker);
+}
+
 async function renderBuildTracker(rows) {
     buildTracker = rows;
     const container = document.getElementById("buildTrackerTable");
@@ -500,11 +513,19 @@ async function renderBuildTracker(rows) {
     container.innerHTML = "<p>Loading...</p>";
 
     let html = `<div class="build-tracker-grid">`;
+
     const filteredRows = rows.filter(trackedSet => {
-        if (buildTrackerFilter === "all") return true;
-        if (buildTrackerFilter === "warframe") return trackedSet.type.includes("Warframe");
-        if (buildTrackerFilter === "weapon") return !trackedSet.type.includes("Warframe");
-        return true;
+        const typeMatch =
+            buildTrackerFilter === "all" ? true :
+            buildTrackerFilter === "warframe" ? trackedSet.type.includes("Warframe") :
+            !trackedSet.type.includes("Warframe");
+
+        const primeMatch =
+            buildTrackerPrimeFilter === "all" ? true :
+            buildTrackerPrimeFilter === "prime" ? trackedSet.name.includes("Prime") :
+            !trackedSet.name.includes("Prime");
+
+        return typeMatch && primeMatch;
     });
 
     for (const trackedSet of filteredRows) {
@@ -673,8 +694,6 @@ async function addItemToBuildTracker() {
 }
 
 // sorting for build tracker page
-
-let buildTrackerFilter = "all";
 
 function setBuildTrackerFilter(filter) {
     buildTrackerFilter = filter;
