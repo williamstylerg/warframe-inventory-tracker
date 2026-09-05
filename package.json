@@ -25,7 +25,6 @@
       "preload.js",
       "dashboard.html",
       "dashboard.js",
-      "styles.css",
       "assets/**/*",
       "bundled-relic-cache.json"
     ],
