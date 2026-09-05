@@ -1260,7 +1260,7 @@ async function loadRecommendations() {
     
     document.getElementById("recommendationList").innerHTML = "<p>Loading...</p>";
     const recommendations = await window.api.getRelicRecommendations();
-    renderRecommendations(recommendations);
+    await renderRecommendations(recommendations);
 }
 
 function toggleRecommendationGrouping() {
@@ -1268,7 +1268,7 @@ function toggleRecommendationGrouping() {
     renderRecommendations(currentRecommendations);
 }
 
-function renderRecommendations(recommendations) {
+async function renderRecommendations(recommendations) {
     currentRecommendations = recommendations;
     const container = document.getElementById("recommendationList");
 
@@ -1277,25 +1277,55 @@ function renderRecommendations(recommendations) {
         return;
     }
 
-    const grouped = {};
-    for (const rec of recommendations) {
-        const key = recommendationGroupMode === "target"
-            ? `${rec.targetSet} — ${rec.targetItem}`
-            : rec.relicName;
-        if (!grouped[key]) grouped[key] = [];
-        grouped[key].push(rec);
-    }
-
     let html = "";
-    for (const key in grouped) {
-        html += `<h3>${key}</h3><ul>`;
-        for (const rec of grouped[key]) {
-            const label = recommendationGroupMode === "target"
-                ? `${rec.relicName} (${rec.relicQuantity} owned) — ${rec.chance}% at ${rec.minRefinement}`
-                : `${rec.targetItem} (${rec.targetSet}) — ${rec.chance}% at ${rec.minRefinement}`;
-            html += `<li>${label}</li>`;
+
+    if (recommendationGroupMode === "target") {
+        const bySet = {};
+        for (const rec of recommendations) {
+            if (!bySet[rec.targetSet]) bySet[rec.targetSet] = {};
+            if (!bySet[rec.targetSet][rec.targetItem]) bySet[rec.targetSet][rec.targetItem] = [];
+            bySet[rec.targetSet][rec.targetItem].push(rec);
         }
-        html += `</ul>`;
+
+        const sortedSets = Object.keys(bySet).sort();
+        for (const setName of sortedSets) {
+            const trackedEntry = buildTracker.find(t => t.name === setName);
+            const setType = trackedEntry ? trackedEntry.type : "Warframe Part";
+            const imageName = await window.api.getItemImage(setName, setType);
+            const imageUrl = imageName ? `https://cdn.warframestat.us/img/${imageName}` : null;
+
+            html += `<div class="recommendation-set-group" style="display:flex; justify-content:space-between; align-items:flex-start; gap:16px;">`;
+            html += `<div style="flex-grow:1;">`;
+            html += `<h2>${setName}</h2>`;
+            for (const itemName in bySet[setName]) {
+                html += `<h3>${itemName}</h3><ul>`;
+                for (const rec of bySet[setName][itemName]) {
+                    html += `<li>${rec.relicName} (${rec.relicQuantity} owned) — ${rec.chance}% at ${rec.minRefinement}</li>`;
+                }
+                html += `</ul>`;
+            }
+            html += `</div>`;
+            if (imageUrl) {
+                html += `<img src="${imageUrl}" style="width:160px; height:160px; object-fit:contain; background:#111; border-radius:6px; flex-shrink:0;" alt="${setName}">`;
+            }
+            html += `</div>`;
+        }
+    } else {
+        const grouped = {};
+        for (const rec of recommendations) {
+            if (!grouped[rec.relicName]) grouped[rec.relicName] = [];
+            grouped[rec.relicName].push(rec);
+        }
+        for (const key in grouped) {
+            const quantity = grouped[key][0].relicQuantity;
+            html += `<div class="recommendation-set-group">`;
+            html += `<h3>${key} (${quantity} owned)</h3><ul>`;
+            for (const rec of grouped[key]) {
+                html += `<li>${rec.targetItem} (${rec.targetSet}) — ${rec.chance}% at ${rec.minRefinement}</li>`;
+            }
+            html += `</ul>`;
+            html += `</div>`;
+        }
     }
 
     container.innerHTML = html;

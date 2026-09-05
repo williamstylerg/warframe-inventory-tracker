@@ -322,6 +322,14 @@
         #relicRewardsModal {
             z-index: 9999;
         }
+
+        .recommendation-set-group {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
     </style>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script> 
@@ -418,6 +426,7 @@
                 <div id="recommendationTabGaps">
                     <div style="margin:12px 0;">
                         <button onclick="toggleRecommendationGrouping()">Toggle Grouping</button>
+                        <button onclick="loadRecommendations()">Refresh</button>
                     </div>
                     <div id="recommendationList"></div>
                 </div>
