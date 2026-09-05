@@ -321,6 +321,12 @@ document.addEventListener("keydown", (event) => {
     }
 });
 
+function getOwnedRelicQuantity(relicFullName) {
+    const key = relicFullName.trim().toLowerCase().replace(/\s+relic$/i, "");
+    const match = relicInventory.find(r => r.name.trim().toLowerCase() === key);
+    return match ? match.quantity : 0;
+}
+
 function renderFarmModal(setName, components) {
     const modal = document.getElementById("farmModal");
     const body = document.getElementById("farmModalBody");
@@ -333,12 +339,20 @@ function renderFarmModal(setName, components) {
 
     const isFlatDropsList = components[0] && components[0].relic !== undefined;
 
+    function renderDropLine(drop) {
+        const owned = getOwnedRelicQuantity(drop.relic);
+        const ownedTag = owned > 0
+            ? ` <span style="color:#4dd9ec; font-weight:bold;">(${owned} owned)</span>`
+            : "";
+        return `<li>${drop.relic} — ${drop.chance}% (${drop.rarity})${ownedTag}</li>`;
+    }
+
     let html = `<h2>${setName}</h2>`;
 
     if (isFlatDropsList) {
         html += `<ul>`;
         for (const drop of components) {
-            html += `<li>${drop.relic} — ${drop.chance}% (${drop.rarity})</li>`;
+            html += renderDropLine(drop);
         }
         html += `</ul>`;
     } else {
@@ -349,7 +363,7 @@ function renderFarmModal(setName, components) {
             } else {
                 html += `<ul>`;
                 for (const drop of comp.drops) {
-                    html += `<li>${drop.relic} — ${drop.chance}% (${drop.rarity})</li>`;
+                    html += renderDropLine(drop);
                 }
                 html += `</ul>`;
             }
@@ -396,7 +410,7 @@ async function checkOffComponent(setName, partName, isPrime, itemCategory) {
         // Blueprint component itself: no suffix needed (it already ends in "blueprint")
         // Warframe parts (Chassis/Neuroptics/Systems): need "_blueprint" appended
         // Weapon parts (Barrel/Receiver/Stock/etc.): no suffix needed
-        const needsSuffix = partName !== "Blueprint" && itemCategory === "Warframe Part";
+        const needsSuffix = partName !== "Blueprint" && itemCategory === "Warframe";
         const slug = needsSuffix ? slugBase + "_blueprint" : slugBase;
 
         inventory = await window.api.addItem(fullName, slug);
@@ -1296,7 +1310,7 @@ function hideSuggestions() {
 
 // ArchWing Specific Lookup
 
-archwingRelatedNames = new Set();
+let archwingRelatedNames = new Set();
 
 (async function loadArchwingRelatedNames() {
     try {
