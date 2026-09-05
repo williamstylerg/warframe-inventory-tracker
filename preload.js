@@ -90,5 +90,8 @@ contextBridge.exposeInMainWorld("api", {
         ipcRenderer.invoke("relics:getRecommendations"),
 
     updateRelicImage: (name, imageName) => 
-        ipcRenderer.invoke("relics:updateImage", { name, imageName })
+        ipcRenderer.invoke("relics:updateImage", { name, imageName }),
+
+    getAppVersion: () => 
+        ipcRenderer.invoke("app:getVersion")
 });

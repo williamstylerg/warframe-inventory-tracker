@@ -112,6 +112,9 @@ async function refreshTotals() {
 // Load build tracker on startup
 
 document.addEventListener("DOMContentLoaded", async () => {
+    const version = await window.api.getAppVersion();
+    document.getElementById("appVersionDisplay").textContent = `v${version}`;
+
     await refreshInventory();
     await refreshTotals();
     const tracker = await window.api.getBuildTracker();

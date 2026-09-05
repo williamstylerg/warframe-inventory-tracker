@@ -1224,6 +1224,9 @@ app.whenReady().then(() => {
     });
 });
 
+// show app version
+ipcMain.handle("app:getVersion", () => app.getVersion());
+
 app.on("window-all-closed", () => {
     if (process.platform !== "darwin") {
         app.quit();
