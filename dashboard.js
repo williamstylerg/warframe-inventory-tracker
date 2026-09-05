@@ -124,7 +124,9 @@ function switchView(viewName) {
     document.getElementById("view-" + viewName).style.display = "block";
 
     document.querySelectorAll(".nav-btn").forEach(btn => btn.classList.remove("active"));
-    event.target.classList.add("active");
+
+    const targetBtn = document.querySelector(`.nav-btn[data-view="${viewName}"]`);
+    if (targetBtn) targetBtn.classList.add("active");
 }
 
 // Settings Panel
@@ -911,6 +913,143 @@ async function backfillRelicImagesHandler() {
     alert("Relic images updated.");
 }
 
+// Relic Reward Map for Suggested Builds
+
+async function buildRelicRewardMap() {
+    const map = new Set();
+
+    for (const relic of relicInventory) {
+        if (relic.quantity <= 0) continue;
+
+        const dropData = await window.api.getRelicDropData(relic.name);
+        if (!dropData) continue;
+
+        for (const state of ["Intact", "Exceptional", "Flawless", "Radiant"]) {
+            const rewards = dropData.rewards[state] || [];
+            for (const reward of rewards) {
+                const normalized = reward.itemName.trim().toLowerCase().replace(/\s+blueprint$/i, "");
+                map.add(normalized);
+            }
+        }
+    }
+
+    return map;
+}
+
+let lastDiscoveryResults = [];
+
+async function runDiscoverNewSets() {
+    document.getElementById("discoverList").innerHTML = "<p>Scanning your relics against every Prime set... this may take a moment the first time.</p>";
+
+    lastDiscoveryResults = await discoverNewSets();
+    await renderDiscoverResults(lastDiscoveryResults);
+}
+
+async function trackDiscoveredSet(setName, setType) {
+    await window.api.addToBuildTracker({ name: setName, type: setType });
+
+    lastDiscoveryResults = lastDiscoveryResults.filter(d => d.setName !== setName);
+    await renderDiscoverResults(lastDiscoveryResults);
+
+    const tracker = await window.api.getBuildTracker();
+    await renderBuildTracker(tracker);
+
+    alert(`${setName} added to your Build Tracker.`);
+}
+
+function getAllPrimeSetNames() {
+    const relevantCategories = ["Warframes", "Primary", "Secondary", "Melee", "Sentinels", "Archwing", "Arch-Gun", "Arch-Melee"];
+    return wfcdItems.filter(i => i.name.includes("Prime") && relevantCategories.includes(i.category));
+}
+
+async function discoverNewSets() {
+    const allSets = getAllPrimeSetNames();
+    const trackedNames = new Set(buildTracker.map(t => t.name.trim().toLowerCase()));
+    const relicRewardMap = await buildRelicRewardMap();
+
+    const discoveries = [];
+
+    for (const set of allSets) {
+        if (trackedNames.has(set.name.trim().toLowerCase())) continue;
+
+        const components = await window.api.getFarmInfo(set.name, set.type);
+        const requiredParts = components.filter(c => isTrackableComponent(c, set.type));
+
+        if (requiredParts.length === 0) continue;
+
+        let matchedCount = 0;
+        const matchedParts = [];
+
+        for (const part of requiredParts) {
+            const fullPartName = `${set.name} ${part.name}`.trim().toLowerCase().replace(/\s+blueprint$/i, "");
+            if (relicRewardMap.has(fullPartName)) {
+                matchedCount++;
+                matchedParts.push(part.name);
+            }
+        }
+
+        if (matchedCount / requiredParts.length >= 0.75) {
+            discoveries.push({
+                setName: set.name,
+                setType: set.type,
+                matchedCount,
+                totalRequired: requiredParts.length,
+                matchedParts
+            });
+        }
+    }
+
+    return discoveries;
+}
+
+async function renderDiscoverResults(discoveries) {
+    const container = document.getElementById("discoverList");
+
+    if (discoveries.length === 0) {
+        container.innerHTML = "<p>No new completable sets found based on your current relics.</p>";
+        return;
+    }
+
+    const filtered = discoveries.filter(d => {
+        if (discoverFilter === "all") return true;
+        if (discoverFilter === "warframe") return d.setType.includes("Warframe");
+        if (discoverFilter === "weapon") return !d.setType.includes("Warframe");
+        return true;
+    });
+
+    filtered.sort((a, b) => (b.matchedCount / b.totalRequired) - (a.matchedCount / a.totalRequired));
+
+    let html = "";
+    for (const d of filtered) {
+        const safeSetName = d.setName.replace(/'/g, "\\'");
+        const safeSetNameForClick = d.setName.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+        const imageName = await window.api.getItemImage(d.setName, d.setType);
+        const imageUrl = imageName ? `https://cdn.warframestat.us/img/${imageName}` : null;
+
+        html += `<div class="set-card">`;
+        if (imageUrl) {
+            html += `<img src="${imageUrl}" class="set-card-image" style="height:100px;" alt="${d.setName}">`;
+        }
+        html += `<h3 class="item-name" onclick="showFarmInfo({name: '${safeSetNameForClick}', set: '${safeSetNameForClick}', type: '${d.setType}'})">${d.setName}</h3>
+            <p>${d.matchedCount} / ${d.totalRequired} components possible from your relics</p>
+            <p style="font-size:0.85em; color:#aaa;">${d.matchedParts.join(", ")}</p>
+            <button onclick="trackDiscoveredSet('${safeSetName}', '${d.setType}')">Track this Set</button>
+        </div>`;
+    }
+
+    container.innerHTML = `<div class="build-tracker-grid">${html}</div>`;
+}
+
+//Recommendation Filter
+
+let discoverFilter = "all";
+
+function setDiscoverFilter(filter) {
+    discoverFilter = filter;
+    renderDiscoverResults(lastDiscoveryResults);
+}
+
+
 // ------------------------------
 // Relic Reward Modal
 // ------------------------------
@@ -1116,6 +1255,9 @@ let recommendationGroupMode = "target";
 let currentRecommendations = [];
 
 async function loadRecommendations() {
+    document.getElementById("recommendationsNavBtn").style.display = "block";
+    switchView("recommendations");
+    
     document.getElementById("recommendationList").innerHTML = "<p>Loading...</p>";
     const recommendations = await window.api.getRelicRecommendations();
     renderRecommendations(recommendations);
@@ -1157,6 +1299,19 @@ function renderRecommendations(recommendations) {
     }
 
     container.innerHTML = html;
+}
+
+// toggle for relic recommendation engine:
+let discoverHasRun = false;
+
+function setRecommendationTab(tab) {
+    document.getElementById("recommendationTabGaps").style.display = tab === "gaps" ? "block" : "none";
+    document.getElementById("recommendationTabDiscover").style.display = tab === "discover" ? "block" : "none";
+
+    if (tab === "discover" && !discoverHasRun) {
+        discoverHasRun = true;
+        runDiscoverNewSets();
+    }
 }
 
 

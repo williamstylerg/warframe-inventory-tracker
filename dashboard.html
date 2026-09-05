@@ -350,10 +350,10 @@
     <div class="app-layout">
         <nav class="sidebar" style="display:flex; flex-direction:column;">
             <h1>Warframe Tracker</h1>
-            <button class="nav-btn active" onclick="switchView('price')">Price Tracker</button>
-            <button class="nav-btn" onclick="switchView('build')">Build Tracker</button>
-            <button class="nav-btn" onclick="switchView('relics')">Relics</button>
-
+                <button class="nav-btn active" data-view="price" onclick="switchView('price')">Price Tracker</button>
+                <button class="nav-btn" data-view="build" onclick="switchView('build')">Build Tracker</button>
+                <button class="nav-btn" data-view="relics" onclick="switchView('relics')">Relics</button>
+                <button id="recommendationsNavBtn" class="nav-btn" data-view="recommendations" onclick="switchView('recommendations')" style="display:none; padding-left:28px; font-size:0.9em;">↳ Recommendations</button>
             <div style="margin-top:auto;">
                 <button class="nav-btn" onclick="toggleSettingsPanel()" style="text-align:left;">⚙ Settings</button>
             </div>
@@ -404,11 +404,31 @@
 
                 <div id="relicGrid" class="relic-grid" style="margin-top:16px;"></div>
 
-                <div style="margin-top:32px;">
-                    <div class="view-header" style="display:flex; justify-content:space-between; align-items:center;">
-                        <h2 style="margin:0;">Recommendations</h2>                    
+            </div>
+
+            <div id="view-recommendations" class="view" style="display:none;">
+                <div class="view-header" style="display:flex; justify-content:space-between; align-items:center;">
+                    <h2 style="margin:0;">Recommendations</h2>
+                    <div>
+                        <button onclick="setRecommendationTab('gaps')">Tracked Set Gaps</button>
+                        <button onclick="setRecommendationTab('discover')">Discover New Sets</button>
+                    </div>
+                </div>
+
+                <div id="recommendationTabGaps">
+                    <div style="margin:12px 0;">
+                        <button onclick="toggleRecommendationGrouping()">Toggle Grouping</button>
                     </div>
                     <div id="recommendationList"></div>
+                </div>
+
+                <div id="recommendationTabDiscover" style="display:none;">
+                        <div style="margin-bottom:12px;">
+                            <button onclick="setDiscoverFilter('all')">All</button>
+                            <button onclick="setDiscoverFilter('warframe')">Warframes</button>
+                            <button onclick="setDiscoverFilter('weapon')">Weapons</button>
+                        </div>
+                    <div id="discoverList"></div>
                 </div>
             </div>
 
