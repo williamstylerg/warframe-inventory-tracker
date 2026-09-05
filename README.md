@@ -105,6 +105,10 @@ npm run build
 
 Price history charts use [Chart.js](https://www.chartjs.org/) loaded from a CDN, so they need an internet connection.
 
+## License
+
+MIT — see [LICENSE](LICENSE).
+
 ## Disclaimer
 
 This is an unofficial fan-made tool. It isn't affiliated with or endorsed by Digital Extremes. Warframe and all related assets are trademarks of Digital Extremes Ltd.
