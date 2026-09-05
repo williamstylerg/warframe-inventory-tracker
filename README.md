@@ -4,8 +4,6 @@ A desktop app for keeping track of what's sitting in your Warframe inventory, wh
 
 You add items by name, and the app pulls the rest in for you: current platinum prices and 90-day price history from [warframe.market](https://warframe.market), drop locations from [warframestat.us](https://warframestat.us), and full relic reward tables. It also tracks the Warframes and weapons you're building, checks off the components you already own, and tells you which of your relics are worth cracking next.
 
-![Price Tracker](docs/images/price-tracker.png)
-
 ## Features
 
 ### Price Tracker
@@ -17,12 +15,15 @@ You add items by name, and the app pulls the rest in for you: current platinum p
 - **Update Prices** refreshes every item in one pass.
 - Click an item's name to see where its components drop; click its price to open a 90-day price and volume history chart.
 
+![Price Tracker](docs/images/price-tracker.png)
+
 ### Build Tracker
 
 Track the sets you're actively building instead of guessing which part you're missing.
 
 - Add a Warframe or weapon and get a card with a checklist of its components.
-- Tick off parts as you get them; filter to **All**, **Warframes**, or **Weapons**.
+- Tick off parts as you get them; filter by type (**All**, **Warframes**, **Weapons**) and by rarity (**Any**, **Prime Only**, **Non-Prime Only**).
+- Archwing frames, Archguns, and Archmelee weapons show a small badge on their card image.
 - Combine owned components into a completed set — the parts are consumed and the set is added to your inventory.
 
 ![Build Tracker](docs/images/build-tracker.png)
@@ -31,15 +32,19 @@ Track the sets you're actively building instead of guessing which part you're mi
 
 - Keep a count of the relics you own, shown as an image grid.
 - Open any relic to see its full reward table.
-- **Get Recommendations** cross-references your relics against your build tracker and tells you which ones actually contain parts you still need.
+- **Get Recommendations** takes you to a dedicated Recommendations page with two views:
+  - **Tracked Set Gaps** — cross-references your relics against your build tracker and tells you which relics contain parts you still need, including which refinement tier to aim for. Grouped by set or by relic, your choice.
+  - **Discover New Sets** — scans your relics against every Prime Warframe and weapon in the game, not just the ones you're tracking, and surfaces any set where your relics could cover at least 3 of its 4 components. One click adds a discovery straight to your Build Tracker.
+- When you open a component's drop locations (from the Price Tracker or Build Tracker), any relic you already own is highlighted with its quantity.
 
 ![Relics](docs/images/relics.png)
 
 ### Settings
 
-- Restore the last auto-backup.
+- Export your inventory and build tracker to a file, or import one back in.
+- Restore the last auto-backup, taken automatically every time you close the app.
 - Recompute rarity tiers and backfill relic images.
-- Clear the farm-data cache or refetch the entire relic drop table.
+- Clear the farm-data cache (useful if an item unexpectedly shows no drop data — it's usually a stale cached result) or refetch the entire relic drop table.
 
 ## Install
 
