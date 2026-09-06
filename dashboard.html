@@ -5,6 +5,21 @@
     <title>Warframe Inventory Tracker</title>
 
     <style>
+        :root {
+            --spacing-sm: 8px;
+            --spacing-md: 16px;
+            --spacing-lg: 24px;
+            --spacing-xl: 32px;
+        }
+
+        .section-spacing {
+            margin-top: var(--spacing-xl);
+        }
+
+        .content {
+            padding: 0 var(--spacing-lg) var(--spacing-lg) var(--spacing-lg);
+        }
+
         .app-layout {
             display: flex;
             height: 100vh;
@@ -389,13 +404,42 @@
         .settings-btn.danger-ish {
             border-color: #6b3a3a;
         }
+
+        .farm-component-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+        }
+
+        .farm-component-box {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .farm-component-image {
+            width: 100%;
+            height: 80px;
+            object-fit: contain;
+            background: #111;
+            border-radius: 6px;
+            margin-bottom: 8px;
+        }
+
+        .farm-component-drops {
+            max-height: 220px;
+            overflow-y: auto;
+            padding-left: 20px;
+            margin: 8px 0 0 0;
+        }
     </style>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script> 
 </head>
 
 <div id="farmModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7);">
-    <div style="background:#222; max-width:500px; margin:60px auto; padding:20px; border-radius:6px; max-height:80vh; overflow-y:auto;">
+    <div style="background:#222; max-width:800px; margin:60px auto; padding:20px; border-radius:6px; max-height:80vh; overflow-y:auto;">
         <button onclick="closeFarmModal()" style="float:right;">Close</button>
         <div id="farmModalBody"></div>
     </div>

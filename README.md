@@ -107,7 +107,9 @@ Price history charts use [Chart.js](https://www.chartjs.org/) loaded from a CDN,
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+## License
+
+GPL-3.0 — see [LICENSE](LICENSE). This means anyone can use, modify, and share this project, but any distributed modified version must also be open source under GPL-3.0. It doesn't restrict Digital Extremes' own rights over Warframe itself — see the disclaimer below.
 
 ## Disclaimer
 

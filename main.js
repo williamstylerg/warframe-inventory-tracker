@@ -207,6 +207,7 @@ function assignRarityTiers(components) {
             name: comp.name,
             ducats: comp.ducats,
             tier: chanceToTier(medianChance),
+            imageName: comp.imageName || null,
             drops: summarized
         };
     });

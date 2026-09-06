@@ -289,7 +289,10 @@ function renderTable(rows) {
                     onchange="updateQuantity('${item.slug}', this.value)">
             </td>
 
-            <td class="item-name" onclick="showPriceHistory('${item.slug}', '${item.name.replace(/'/g, "\\'")}')">${item.price}</td>
+            <td>
+                ${item.price}
+                <button onclick="showPriceHistory('${item.slug}', '${item.name.replace(/'/g, "\\'")}')" title="View price history" style="background:#2a2a2a; border:1px solid #444; border-radius:4px; padding:4px 8px; margin-right:4px;">📈</button>
+            </td>
             <td>${total}</td>
             <td>${new Date(item.lastUpdated).toLocaleDateString()}</td>
 
@@ -332,7 +335,7 @@ function getOwnedRelicQuantity(relicFullName) {
     return match ? match.quantity : 0;
 }
 
-function renderFarmModal(setName, components) {
+function renderFarmModal(setName, components, itemType) {
     const modal = document.getElementById("farmModal");
     const body = document.getElementById("farmModalBody");
 
@@ -361,18 +364,28 @@ function renderFarmModal(setName, components) {
         }
         html += `</ul>`;
     } else {
-        for (const comp of components) {
+        const trackableComponents = components.filter(c => isTrackableComponent(c, itemType));
+        html += `<div class="farm-component-grid">`;
+        for (const comp of trackableComponents) {
+            const imageUrl = comp.imageName ? `https://cdn.warframestat.us/img/${comp.imageName}` : null;
+
+            html += `<div class="farm-component-box">`;
+            if (imageUrl) {
+                html += `<img src="${imageUrl}" class="farm-component-image" alt="${comp.name}">`;
+            }
             html += `<h3>${comp.name}</h3>`;
             if (!comp.drops || comp.drops.length === 0) {
                 html += `<p><em>No relic drop data (likely a resource or non-relic item).</em></p>`;
             } else {
-                html += `<ul>`;
+                html += `<ul class="farm-component-drops">`;
                 for (const drop of comp.drops) {
                     html += renderDropLine(drop);
                 }
                 html += `</ul>`;
             }
+            html += `</div>`;
         }
+        html += `</div>`;
     }
 
     body.innerHTML = html;
