@@ -284,7 +284,7 @@ async function fetchFarmData(setName, itemType) {
         const rawComponents = match?.components || [];
         const components = assignRarityTiers(rawComponents);
 
-        cache[key] = { components, imageName: match?.imageName || null, fetchedAt: Date.now() };
+        cache[key] = { components, imageName: match?.imageName || null, vaulted: match?.vaulted || false, fetchedAt: Date.now() };
         saveFarmCache(cache);
         return components;
 
@@ -1012,11 +1012,18 @@ ipcMain.handle("inventory:add", async (event, { name, slug }) => {
     const itemType = inferTypeFromTags(tags);
     const tier = await resolveTierForItem(name.replace(" Blueprint", ""), itemType, setName);
 
+    let isVaulted = false;
+    if (itemType.includes("Warframe") || itemType.includes("Weapon")) {
+        await fetchFarmData(setName, itemType);
+        const farmCache = loadFarmCache();
+        isVaulted = farmCache[setName.trim().toLowerCase()]?.vaulted || false;
+    }
+
     if (existing) {
         existing.quantity += 1;
         existing.type = itemType;
         existing.rarity = inferRarityFromTags(tags);
-        existing.vaulted = tags.includes("vaulted");
+        existing.vaulted = isVaulted;
         existing.set = setName;
         existing.tier = tier;
     } else {
@@ -1027,7 +1034,7 @@ ipcMain.handle("inventory:add", async (event, { name, slug }) => {
             price: 0,
             type: itemType,
             rarity: inferRarityFromTags(tags),
-            vaulted: tags.includes("vaulted"),
+            vaulted: isVaulted,
             set: setName,
             tier: tier,
             lastUpdated: Date.now()
@@ -1223,6 +1230,20 @@ app.whenReady().then(() => {
             createWindow();
         }
     });
+});
+
+// vaulted status
+ipcMain.handle("item:getVaulted", async (event, { name, type }) => {
+    const cache = loadFarmCache();
+    const key = name.trim().toLowerCase();
+
+    if (cache[key]?.vaulted !== undefined) {
+        return cache[key].vaulted;
+    }
+
+    await fetchFarmData(name, type);
+    const refreshedCache = loadFarmCache();
+    return refreshedCache[key]?.vaulted || false;
 });
 
 // show app version

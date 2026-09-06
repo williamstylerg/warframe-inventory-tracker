@@ -17,7 +17,9 @@
         }
 
         .content {
+            flex-grow: 1;
             padding: 0 var(--spacing-lg) var(--spacing-lg) var(--spacing-lg);
+            overflow-y: auto;
         }
 
         .app-layout {
@@ -194,7 +196,7 @@
         .build-tracker-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 16px;
+            gap: var(--spacing-md);
         }
 
         .set-card {
@@ -261,13 +263,13 @@
             top: 0;
             background: #111;
             z-index: 15;
-            padding-top: 20px;
-            padding-bottom: 12px;
-            margin-bottom: 12px;
-            margin-left: -20px;
-            margin-right: -20px;
-            padding-left: 20px;
-            padding-right: 20px;
+            padding-top: var(--spacing-lg);
+            padding-bottom: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+            margin-left: -24px;
+            margin-right: -24px;
+            padding-left: var(--spacing-lg);
+            padding-right: var(--spacing-lg);
             border-bottom: 1px solid #333;
         }
 
@@ -347,7 +349,7 @@
         }
 
         .settings-section {
-            margin-bottom: 28px;
+            margin-bottom: var(--spacing-xl);
         }
 
         .settings-section h3 {
@@ -408,7 +410,7 @@
         .farm-component-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 16px;
+            gap: var(--spacing-md);
         }
 
         .farm-component-box {

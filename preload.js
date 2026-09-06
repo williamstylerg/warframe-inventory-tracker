@@ -93,5 +93,8 @@ contextBridge.exposeInMainWorld("api", {
         ipcRenderer.invoke("relics:updateImage", { name, imageName }),
 
     getAppVersion: () => 
-        ipcRenderer.invoke("app:getVersion")
+        ipcRenderer.invoke("app:getVersion"),
+
+    getVaulted: (name, type) => 
+        ipcRenderer.invoke("item:getVaulted", { name, type })
 });

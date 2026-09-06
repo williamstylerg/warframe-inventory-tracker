@@ -117,6 +117,17 @@ This took several iterations to get right, worth documenting the final logic:
 
 ---
 
+## Bugs Found / Not Yet Fixed
+
+- **Bug: input fields become unresponsive after certain Settings actions (first noticed after Clear Farm Data Cache)**
+Symptom: after triggering the action, no text input box across the entire app accepts keyboard input. Clicking works fine everywhere; only typing is affected.
+Opening DevTools "fixes" it immediately, even without running any command — the act of opening DevTools itself resolves it.
+Likely cause: a Chromium/Electron quirk where a native, blocking confirm() dialog leaves the renderer's internal focus/input state desynced. DevTools opening forces a repaint/reflow that happens to resync it as a side effect — this points to a rendering-layer issue, not a JS logic bug (ruled out stale keydown listeners specifically because DevTools-opening-alone fixes it, not just any JS execution).
+Planned fix: replace native confirm()/alert() dialogs across Settings actions with a custom, in-app modal (consistent with the rest of the app's UI anyway) to sidestep the native-dialog/Electron interaction entirely, rather than continuing to chase the exact underlying mechanism.
+Not yet reproduced outside of actions using confirm() — worth testing after the custom-modal fix to confirm it's actually resolved, not just made less frequent.
+
+---
+
 ## Known Non-Issues (Investigated, Confirmed Working As-Is)
 
 - **Vendor/syndicate-acquired mods** (e.g., Mesa's Waltz): initially assumed these had no usable farm data. Verified directly — WFCD's data *does* cover them, just repurposing the `location`/`chance`/`rarity` shape to describe syndicate rank + standing cost instead of a mission. Displays correctly already; no fix needed. (A stale cached "no data" result from an early test made this look broken until the cache was cleared — added a troubleshooting note in Settings for this exact situation.)
