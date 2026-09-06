@@ -271,6 +271,10 @@
             padding-left: var(--spacing-lg);
             padding-right: var(--spacing-lg);
             border-bottom: 1px solid #333;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
         }
 
         .relic-grid {
@@ -477,6 +481,7 @@
 
             <div id="view-price" class="view">
                 <div class="view-header">
+                    <h2>Price Tracker</h2>
                     <input id="itemName" placeholder="Item Name" oninput="showSuggestions(this.value)">
                     <div id="suggestions"></div>
                     <input id="itemSlug" type="hidden">
@@ -493,17 +498,27 @@
             </div>
 
             <div id="view-build" class="view" style="display:none;">
-                <div class="view-header">
+                <div class="view-header" style="position:relative;">
                     <h2>Build Tracker</h2>
-                    <input id="buildTrackerName" placeholder="Item Name" oninput="showBuildTrackerSuggestions(this.value)">
+                    <input id="buildTrackerName" placeholder="Item Name" oninput="showBuildTrackerSuggestions(this.value)" style="width:200px;">
                     <div id="buildTrackerSuggestions" ...></div>
                     <button onclick="addItemToBuildTracker()">Add to Build Tracker</button>
-                    <button onclick="setBuildTrackerFilter('all')">All</button>
-                    <button onclick="setBuildTrackerFilter('warframe')">Warframes</button>
-                    <button onclick="setBuildTrackerFilter('weapon')">Weapons</button>
-                    <button onclick="setBuildTrackerPrimeFilter('all')">Any Rarity</button>
-                    <button onclick="setBuildTrackerPrimeFilter('prime')">Prime Only</button>
-                    <button onclick="setBuildTrackerPrimeFilter('nonprime')">Non-Prime Only</button>
+                    <button onclick="toggleBuildTrackerFilterMenu()">Filters ▾</button>
+
+                    <div id="buildTrackerFilterMenu" style="display:none; position:absolute; background:#222; border:1px solid #333; border-radius:6px; padding:12px; z-index:20; margin-top:4px;">
+                        <div style="margin-bottom:8px;">
+                            <strong style="font-size:0.85em; color:#888;">Type</strong><br>
+                            <button onclick="setBuildTrackerFilter('all')">All</button>
+                            <button onclick="setBuildTrackerFilter('warframe')">Warframes</button>
+                            <button onclick="setBuildTrackerFilter('weapon')">Weapons</button>
+                        </div>
+                        <div>
+                            <strong style="font-size:0.85em; color:#888;">Rarity</strong><br>
+                            <button onclick="setBuildTrackerPrimeFilter('all')">Any</button>
+                            <button onclick="setBuildTrackerPrimeFilter('prime')">Prime Only</button>
+                            <button onclick="setBuildTrackerPrimeFilter('nonprime')">Non-Prime Only</button>
+                        </div>
+                    </div>
                 </div>
 
                 <table id="buildTrackerTable" style="margin-top: 10px;"></table>

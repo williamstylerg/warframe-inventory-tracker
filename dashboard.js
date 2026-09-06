@@ -716,6 +716,18 @@ function setBuildTrackerFilter(filter) {
     renderBuildTracker(buildTracker);
 }
 
+function toggleBuildTrackerFilterMenu() {
+    const menu = document.getElementById("buildTrackerFilterMenu");
+    menu.style.display = menu.style.display === "none" ? "block" : "none";
+}
+
+document.addEventListener("click", (event) => {
+    const menu = document.getElementById("buildTrackerFilterMenu");
+    if (menu.style.display === "block" && !menu.contains(event.target) && event.target.getAttribute("onclick") !== "toggleBuildTrackerFilterMenu()") {
+        menu.style.display = "none";
+    }
+});
+
 
 // ------------------------------
 // RELIC INVENTORY
