@@ -13,18 +13,20 @@ You add items by name, and the app pulls the rest in for you: current platinum p
 - Rows are color-coded by rarity — bronze for Common, silver for Uncommon, gold for Rare — worked out from the component's actual drop chance rather than a fixed table.
 - Running totals for unique items and total platinum value.
 - **Update Prices** refreshes every item in one pass.
-- Click an item's name to see where its components drop; click its price to open a 90-day price and volume history chart.
+- Click an item's name to see a grid of its components — each with its own image and full list of relic sources, showing which relics you already own. Click its price to open a 90-day price and volume history chart.
 
 ![Price Tracker](docs/images/price-tracker.png)
+![Drop Locations](docs/images/Drop-Locations%20-%20Farm-Modal.png)
+![Price Chart](docs/images/price-chart.png)
 
 ### Build Tracker
 
 Track the sets you're actively building instead of guessing which part you're missing.
 
 - Add a Warframe or weapon and get a card with a checklist of its components.
-- Tick off parts as you get them; filter by type (**All**, **Warframes**, **Weapons**) and by rarity (**Any**, **Prime Only**, **Non-Prime Only**).
-- Archwing frames, Archguns, and Archmelee weapons show a small badge on their card image.
+- Tick off parts as you get them; use the **Filters** dropdown to narrow by type (Warframes/Weapons) and rarity (Prime/Non-Prime).
 - Combine owned components into a completed set — the parts are consumed and the set is added to your inventory.
+- Archwing frames, Archguns, and Archmelee weapons show a small badge on their card image.
 
 ![Build Tracker](docs/images/build-tracker.png)
 
@@ -38,6 +40,9 @@ Track the sets you're actively building instead of guessing which part you're mi
 - When you open a component's drop locations (from the Price Tracker or Build Tracker), any relic you already own is highlighted with its quantity.
 
 ![Relics](docs/images/relics.png)
+![Relic Drops](docs/images/relic-drops.png)
+![Get Recommendations](docs/images/get-recommendations.png)
+![Discover New Sets](docs/images/discover-new-sets.png)
 
 ### Settings
 
@@ -104,8 +109,6 @@ npm run build
 | `scripts/build-relic-cache.js` | Regenerates that cache from drops.warframestat.us |
 
 Price history charts use [Chart.js](https://www.chartjs.org/) loaded from a CDN, so they need an internet connection.
-
-## License
 
 ## License
 
