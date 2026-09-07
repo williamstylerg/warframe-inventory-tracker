@@ -16,7 +16,7 @@ You add items by name, and the app pulls the rest in for you: current platinum p
 - Click an item's name to see a grid of its components — each with its own image and full list of relic sources, showing which relics you already own. Click its price to open a 90-day price and volume history chart.
 
 ![Price Tracker](docs/images/price-tracker.png)
-![Drop Locations](docs/images/Drop-Locations%20-%20Farm-Modal.png)
+![Drop Locations](docs/images/drop-locations.png)
 ![Price Chart](docs/images/price-chart.png)
 
 ### Build Tracker
