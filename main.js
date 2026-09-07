@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain, dialog } = require("electron");
 const path = require("path");
 const fs = require("fs");
 const axios = require("axios");
+const { autoUpdater } = require("electron-updater");
 
 app.setName("Warframe Inventory Tracker"); 
 
@@ -1224,12 +1225,39 @@ ipcMain.handle("relics:updateImage", (event, { name, imageName }) => updateRelic
 // App lifecycle
 app.whenReady().then(() => {
     createWindow();
+    checkForUpdates();
 
     app.on("activate", () => {
         if (BrowserWindow.getAllWindows().length === 0) {
             createWindow();
         }
     });
+});
+
+// updater
+function checkForUpdates() {
+    autoUpdater.checkForUpdatesAndNotify();
+}
+
+autoUpdater.on("update-available", (info) => {
+    console.log("Update available:", info.version);
+});
+
+autoUpdater.on("update-downloaded", (info) => {
+    dialog.showMessageBox(mainWindow, {
+        type: "info",
+        title: "Update Ready",
+        message: `Version ${info.version} has been downloaded. Restart now to install it?`,
+        buttons: ["Restart Now", "Later"]
+    }).then((result) => {
+        if (result.response === 0) {
+            autoUpdater.quitAndInstall();
+        }
+    });
+});
+
+autoUpdater.on("error", (err) => {
+    console.log("Auto-update error:", err.message);
 });
 
 // vaulted status
