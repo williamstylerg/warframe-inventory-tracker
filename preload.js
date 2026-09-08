@@ -96,5 +96,8 @@ contextBridge.exposeInMainWorld("api", {
         ipcRenderer.invoke("app:getVersion"),
 
     getVaulted: (name, type) => 
-        ipcRenderer.invoke("item:getVaulted", { name, type })
+        ipcRenderer.invoke("item:getVaulted", { name, type }),
+
+    getPortfolioHistory: () => 
+        ipcRenderer.invoke("portfolio:getHistory")
 });

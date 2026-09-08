@@ -461,7 +461,7 @@ async function importBackup() {
     }
 }
 
-// Auto backup on app close
+// Auto backup & snapshot price on app close
 app.on("before-quit", (event) => {
     event.preventDefault();
 
@@ -478,8 +478,10 @@ app.on("before-quit", (event) => {
         const autoBackupPath = path.join(app.getPath("userData"), "auto-backup.json");
         fs.writeFileSync(autoBackupPath, JSON.stringify(backup, null, 2));
         console.log("Auto-backup saved to:", autoBackupPath);
+
+        snapshotPortfolioValue();
     } catch (err) {
-        console.log("Auto-backup failed:", err.message);
+        console.log("Auto-backup or portfolio snapshot failed:", err.message);
     }
 
     app.exit();
@@ -956,9 +958,61 @@ async function getRelicRecommendations() {
     return recommendations;
 }
 
+
+// ------------------------------
+// Portfolio Value History
+// ------------------------------
+
+const portfolioHistoryPath = path.join(app.getPath("userData"), "portfolioHistory.json");
+
+function ensurePortfolioHistoryFile() {
+    if (!fs.existsSync(portfolioHistoryPath)) {
+        fs.writeFileSync(portfolioHistoryPath, "[]");
+    }
+}
+
+function loadPortfolioHistory() {
+    ensurePortfolioHistoryFile();
+    try {
+        return JSON.parse(fs.readFileSync(portfolioHistoryPath, "utf8"));
+    } catch {
+        return [];
+    }
+}
+
+function savePortfolioHistory(history) {
+    fs.writeFileSync(portfolioHistoryPath, JSON.stringify(history, null, 2));
+}
+
+function snapshotPortfolioValue() {
+    const inventory = loadInventory();
+    const totalPlat = inventory.reduce((sum, item) => sum + (Number(item.price) * Number(item.quantity)), 0);
+    const totalUnique = inventory.length;
+    const totalItems = inventory.reduce((sum, item) => sum + Number(item.quantity), 0);
+    const today = new Date().toISOString().slice(0, 10);
+
+    let history = loadPortfolioHistory();
+    const existingEntry = history.find(h => h.date === today);
+
+    if (existingEntry) {
+        existingEntry.totalPlat = totalPlat;
+        existingEntry.totalUnique = totalUnique;
+        existingEntry.totalItems = totalItems;
+    } else {
+        history.push({ date: today, totalPlat, totalUnique, totalItems });
+    }
+
+    savePortfolioHistory(history);
+    return history;
+}
+
+
 // ------------------------------
 // IPC handlers
 // ------------------------------
+
+// Value Snapshot
+ipcMain.handle("portfolio:getHistory", () => loadPortfolioHistory());
 
 // Backup - export and import and auto restore
 ipcMain.handle("backup:export", async () => await exportBackup());
