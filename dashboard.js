@@ -8,6 +8,60 @@ let sortAsc = true;
 let wfcdItems = []; // WFCD catalog for build-tracker autocomplete
 
 // ------------------------------
+// CUSTOM DIALOGS (replaces native confirm()/alert())
+// ------------------------------
+
+function showAlert(message) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById("customDialogModal");
+        document.getElementById("customDialogMessage").textContent = message;
+        const buttonsDiv = document.getElementById("customDialogButtons");
+        buttonsDiv.innerHTML = "";
+
+        const okBtn = document.createElement("button");
+        okBtn.textContent = "OK";
+        okBtn.onclick = () => {
+            modal.style.display = "none";
+            resolve();
+        };
+        buttonsDiv.appendChild(okBtn);
+
+        modal.style.display = "block";
+        okBtn.focus();
+    });
+}
+
+function showConfirm(message) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById("customDialogModal");
+        document.getElementById("customDialogMessage").textContent = message;
+        const buttonsDiv = document.getElementById("customDialogButtons");
+        buttonsDiv.innerHTML = "";
+
+        const yesBtn = document.createElement("button");
+        yesBtn.textContent = "Yes";
+        yesBtn.onclick = () => {
+            modal.style.display = "none";
+            resolve(true);
+        };
+
+        const noBtn = document.createElement("button");
+        noBtn.textContent = "Cancel";
+        noBtn.style.background = "#444";
+        noBtn.onclick = () => {
+            modal.style.display = "none";
+            resolve(false);
+        };
+
+        buttonsDiv.appendChild(yesBtn);
+        buttonsDiv.appendChild(noBtn);
+
+        modal.style.display = "block";
+        yesBtn.focus();
+    });
+}
+
+// ------------------------------
 // INITIALIZATION
 // ------------------------------
 document.addEventListener("DOMContentLoaded", async () => {
@@ -76,18 +130,18 @@ async function refreshInventory() {
 async function combineSet() {
     const setName = document.getElementById("combineSetName").value.trim();
     if (!setName) {
-        alert("Enter a set name");
+        await showAlert("Enter a set name");
         return;
     }
 
     const result = await window.api.combineSet(setName);
 
     if (!result.success) {
-        alert(result.reason);
+        await showAlert(result.reason);
         return;
     }
 
-    alert(`Combined ${result.setsCreated} set(s) of ${setName}.`);
+    await showAlert(`Combined ${result.setsCreated} set(s) of ${setName}.`);
 
     inventory = await window.api.getInventory();
     renderTable(inventory);
@@ -155,14 +209,16 @@ document.addEventListener("keydown", (event) => {
 });
 
 async function backfillTiersHandler() {
+    document.getElementById("settingsPanel").style.display = "none";
     const result = await window.api.backfillTiers();
     inventory = await window.api.getInventory();
     renderTable(inventory);
-    alert(`Updated tier data for ${result.updated} of ${result.total} items.`);
+    await showAlert(`Updated tier data for ${result.updated} of ${result.total} items.`);
 }
 
 async function refreshAllRelicDataHandler() {
-    const confirmed = confirm(
+    document.getElementById("settingsPanel").style.display = "none";
+    const confirmed = await showConfirm(
         "This will refetch all relic drop data from the live source. It may take a moment. Continue?"
     );
     if (!confirmed) return;
@@ -170,9 +226,9 @@ async function refreshAllRelicDataHandler() {
     const result = await window.api.refreshAllRelicData();
 
     if (result.success) {
-        alert(`Updated ${result.count} relics.`);
+        await showAlert(`Updated ${result.count} relics.`);
     } else {
-        alert("Failed to update relic data: " + result.reason);
+        await showAlert("Failed to update relic data: " + result.reason);
     }
 }
 
@@ -184,7 +240,7 @@ async function addItem() {
     const slug = document.getElementById("itemSlug").value.trim();
 
     if (!name || !slug) {
-        alert("Item name and slug required");
+        await showAlert("Item name and slug required");
         return;
     }
 
@@ -235,14 +291,16 @@ async function deleteItem(slug) {
 // ------------------------------
 
 async function clearFarmCacheHandler() {
-    const confirmed = confirm("This will clear cached farm/component data. It will be refetched automatically as needed. Continue?");
+    document.getElementById("settingsPanel").style.display = "none";
+
+    const confirmed = await showConfirm("This will clear cached farm/component data. It will be refetched automatically as needed. Continue?");
     if (!confirmed) return;
 
     const result = await window.api.clearFarmCache();
     if (result.success) {
-        alert("Farm data cache cleared.");
+        await showAlert("Farm data cache cleared.");
     } else {
-        alert("Failed to clear cache: " + result.reason);
+        await showAlert("Failed to clear cache: " + result.reason);
     }
 }
 
@@ -623,11 +681,11 @@ async function combineSetFromPanel(setName) {
     const result = await window.api.combineSet(setName);
 
     if (!result.success) {
-        alert(result.reason);
+        await showAlert(result.reason);
         return;
     }
 
-    alert(`Combined ${result.setsCreated} set(s) of ${setName}.`);
+    await showAlert(`Combined ${result.setsCreated} set(s) of ${setName}.`);
 
     inventory = await window.api.getInventory();
     renderTable(inventory);
@@ -682,7 +740,7 @@ async function addItemToBuildTracker() {
     const nameInput = document.getElementById("buildTrackerName").value.trim();
 
     if (!nameInput) {
-        alert("Enter an item name");
+        await showAlert("Enter an item name");
         return;
     }
 
@@ -792,9 +850,10 @@ async function addRelicHandler() {
     const nameInput = document.getElementById("relicSearchName").value.trim();
     if (!nameInput) return;
 
-    const imageName = null; // we'll wire this up to WFCD relic data in step 2 of the overall plan
+    const normalizedName = normalizeRelicName(nameInput);
+    const imageName = getRelicImageName(normalizedName);
 
-    relicInventory = await window.api.addRelic(nameInput, imageName);
+    relicInventory = await window.api.addRelic(normalizedName, imageName);
     renderRelicGrid(relicInventory);
 
     document.getElementById("relicSearchName").value = "";
@@ -937,20 +996,8 @@ function getRelicImageName(relicFullName) {
     return tierMap[tier] || null;
 }
 
-async function addRelicHandler() {
-    const nameInput = document.getElementById("relicSearchName").value.trim();
-    if (!nameInput) return;
-
-    const normalizedName = normalizeRelicName(nameInput);
-    const imageName = getRelicImageName(normalizedName);
-
-    relicInventory = await window.api.addRelic(normalizedName, imageName);
-    renderRelicGrid(relicInventory);
-
-    document.getElementById("relicSearchName").value = "";
-}
-
 async function backfillRelicImagesHandler() {
+    document.getElementById("settingsPanel").style.display = "none";
     for (const relic of relicInventory) {
         if (!relic.imageName) {
             const imageName = getRelicImageName(relic.name);
@@ -960,7 +1007,7 @@ async function backfillRelicImagesHandler() {
         }
     }
     await refreshRelics();
-    alert("Relic images updated.");
+    await showAlert("Relic images updated.");
 }
 
 // Relic Reward Map for Suggested Builds
@@ -989,7 +1036,9 @@ async function buildRelicRewardMap() {
 let lastDiscoveryResults = [];
 
 async function runDiscoverNewSets() {
-    document.getElementById("discoverList").innerHTML = "<p>Scanning your relics against every Prime set... this may take a moment the first time.</p>";
+    document.getElementById("discoverList").innerHTML = `
+        <p><span class="spinner"></span>Scanning your relics against every Prime set... this may take a moment the first time.</p>
+    `;
 
     lastDiscoveryResults = await discoverNewSets();
     await renderDiscoverResults(lastDiscoveryResults);
@@ -1004,7 +1053,7 @@ async function trackDiscoveredSet(setName, setType) {
     const tracker = await window.api.getBuildTracker();
     await renderBuildTracker(tracker);
 
-    alert(`${setName} added to your Build Tracker.`);
+    await showAlert(`${setName} added to your Build Tracker.`);
 }
 
 function getAllPrimeSetNames() {
@@ -1307,8 +1356,10 @@ let currentRecommendations = [];
 async function loadRecommendations() {
     document.getElementById("recommendationsNavBtn").style.display = "block";
     switchView("recommendations");
-    
-    document.getElementById("recommendationList").innerHTML = "<p>Loading...</p>";
+
+    document.getElementById("recommendationList").innerHTML = `
+        <p><span class="spinner"></span>Loading recommendations...</p>
+    `;
     const recommendations = await window.api.getRelicRecommendations();
     await renderRecommendations(recommendations);
 }
@@ -1400,20 +1451,22 @@ function setRecommendationTab(tab) {
 // ------------------------------
 
 async function exportBackupHandler() {
+    document.getElementById("settingsPanel").style.display = "none";
     const result = await window.api.exportBackup();
 
     if (!result.success) {
         if (result.reason !== "Export cancelled.") {
-            alert(result.reason);
+            await showAlert(result.reason);
         }
         return;
     }
 
-    alert(`Backup saved to:\n${result.path}`);
+    await showAlert(`Backup saved to:\n${result.path}`);
 }
 
 async function importBackupHandler() {
-    const confirmed = confirm(
+    document.getElementById("settingsPanel").style.display = "none";
+    const confirmed = await showConfirm(
         "Importing a backup will overwrite your current inventory and build tracker data. This cannot be undone. Continue?"
     );
 
@@ -1423,7 +1476,7 @@ async function importBackupHandler() {
 
     if (!result.success) {
         if (result.reason !== "Import cancelled.") {
-            alert(result.reason);
+            await showAlert(result.reason);
         }
         return;
     }
@@ -1435,13 +1488,14 @@ async function importBackupHandler() {
     const tracker = await window.api.getBuildTracker();
     await renderBuildTracker(tracker);
 
-    alert("Backup imported successfully.");
+    await showAlert("Backup imported successfully.");
 }
 
 // Restore Auto Bakcup
 
 async function restoreAutoBackupHandler() {
-    const confirmed = confirm(
+    document.getElementById("settingsPanel").style.display = "none";
+    const confirmed = await showConfirm(
         "This will restore your most recent auto-backup, overwriting your current inventory and build tracker. Continue?"
     );
 
@@ -1450,7 +1504,7 @@ async function restoreAutoBackupHandler() {
     const result = await window.api.restoreAutoBackup();
 
     if (!result.success) {
-        alert(result.reason);
+        await showAlert(result.reason);
         return;
     }
 
@@ -1462,7 +1516,7 @@ async function restoreAutoBackupHandler() {
     await renderBuildTracker(tracker);
 
     const backupDate = new Date(result.exportedAt).toLocaleString();
-    alert(`Restored auto-backup from ${backupDate}.`);
+    await showAlert(`Restored auto-backup from ${backupDate}.`);
 }
 
 
