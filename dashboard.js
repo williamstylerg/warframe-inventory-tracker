@@ -620,7 +620,11 @@ async function renderBuildTracker(rows) {
             buildTrackerPrimeFilter === "prime" ? trackedSet.name.includes("Prime") :
             !trackedSet.name.includes("Prime");
 
-        return typeMatch && primeMatch;
+            const searchMatch = buildTrackerSearchQuery
+            ? trackedSet.name.toLowerCase().includes(buildTrackerSearchQuery)
+            : true;
+
+        return typeMatch && primeMatch && searchMatch;
     }).sort((a, b) => {
     const aIsPrime = a.name.includes("Prime");
     const bIsPrime = b.name.includes("Prime");
@@ -1868,4 +1872,27 @@ function calculateAveragePlatPerDucat(inv) {
     const ratios = validItems.map(i => i.price / i.ducats);
     const average = ratios.reduce((sum, r) => sum + r, 0) / ratios.length;
     return Math.round(average * 100) / 100;
+}
+
+//-----------------------
+//SEARCH FUNCTIONS IN PAGES
+//-----------------------
+
+function filterPriceTable(query) {
+    const q = query.trim().toLowerCase();
+    const filtered = q ? inventory.filter(i => i.name.toLowerCase().includes(q)) : inventory;
+    renderTable(filtered);
+}
+
+let buildTrackerSearchQuery = "";
+
+function filterBuildTracker(query) {
+    buildTrackerSearchQuery = query.trim().toLowerCase();
+    renderBuildTracker(buildTracker);
+}
+
+function filterRelicGrid(query) {
+    const q = query.trim().toLowerCase();
+    const filtered = q ? relicInventory.filter(r => r.name.toLowerCase().includes(q)) : relicInventory;
+    renderRelicGrid(filtered);
 }

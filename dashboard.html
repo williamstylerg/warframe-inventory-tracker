@@ -514,6 +514,7 @@
                         <div><strong>Total Unique Items:</strong> <span id="totalUnique">0</span></div>
                         <div><strong>Total Platinum Value:</strong> <span id="totalPlat">0</span></div>
                     </div>
+                    <input id="priceSearchInput" placeholder="Search inventory..." oninput="filterPriceTable(this.value)" style="width:200px; margin-left:auto;">
                 </div>
 
                 <table id="inventoryTable"></table>
@@ -541,6 +542,8 @@
                             <button onclick="setBuildTrackerPrimeFilter('nonprime')">Non-Prime Only</button>
                         </div>
                     </div>
+
+                    <input id="buildTrackerSearchInput" placeholder="Search sets..." oninput="filterBuildTracker(this.value)" style="width:200px; margin-left:auto;">
                 </div>
 
                 <div id="almostCompleteDigest"></div>
@@ -555,6 +558,7 @@
                     <button onclick="addRelicHandler()">Add Relic</button>
                     <button onclick="toggleRecommendationGrouping()">Toggle Grouping</button>
                     <button onclick="loadRecommendations()">Get Recommendations</button>
+                    <input id="relicSearchFilterInput" placeholder="Search owned relics..." oninput="filterRelicGrid(this.value)" style="width:200px; margin-left:auto;">
                 </div>
 
                 <div id="relicGrid" class="relic-grid" style="margin-top:16px;"></div>
