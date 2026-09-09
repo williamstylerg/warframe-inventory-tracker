@@ -605,7 +605,7 @@ async function renderBuildTracker(rows) {
     const scrollContainer = document.querySelector(".content");
     const scrollPos = scrollContainer.scrollTop;
 
-    container.innerHTML = "<p>Loading...</p>";
+    // container.innerHTML = "<p>Loading...</p>";
 
     let html = `<div class="build-tracker-grid">`;
 
@@ -675,9 +675,9 @@ async function renderBuildTracker(rows) {
                 const safePartName = part.name.replace(/'/g, "\\'");
 
                 html += `<li>
+                    <span class="part-label">${part.name}</span>
                     <input type="checkbox" ${owned ? "checked" : ""}
                         onchange="this.blur(); this.checked ? checkOffComponent('${safeSetName}', '${safePartName}', ${isPrime}, '${trackedSet.type}') : uncheckOffComponent('${safeSetName}', '${safePartName}', ${isPrime})">
-                    ${part.name}
                 </li>`;
             }
             html += `</ul>`;
@@ -700,6 +700,7 @@ async function renderBuildTracker(rows) {
 
     container.innerHTML = html || "<p>No sets being tracked yet.</p>";
     scrollContainer.scrollTop = scrollPos;
+    await renderAlmostCompleteDigest();
 }
 
 async function combineSetFromPanel(setName) {
@@ -813,6 +814,82 @@ document.addEventListener("click", (event) => {
         menu.style.display = "none";
     }
 });
+
+// NEAR COMPLETED SETS
+
+async function getAlmostCompleteSets() {
+    const almostComplete = [];
+
+    for (const trackedSet of buildTracker) {
+        const components = await window.api.getFarmInfo(trackedSet.name, trackedSet.type);
+        const requiredParts = components.filter(c => isTrackableComponent(c, trackedSet.type));
+
+        if (requiredParts.length === 0) continue;
+
+        let ownedCount = 0;
+        const missingParts = [];
+
+        for (const part of requiredParts) {
+            const isPrime = part.ducats !== undefined;
+            let owned;
+
+            if (isPrime) {
+                const fullName = `${trackedSet.name} ${part.name}`;
+                owned = inventory.some(
+                    invItem => normalizeNameClient(invItem.name) === normalizeNameClient(fullName) && invItem.quantity > 0
+                );
+            } else {
+                owned = (trackedSet.obtainedParts || []).includes(part.name);
+            }
+
+            if (owned) {
+                ownedCount++;
+            } else {
+                missingParts.push(part.name);
+            }
+        }
+
+        const missingCount = requiredParts.length - ownedCount;
+
+        if (missingCount === 1) {
+            almostComplete.push({
+                setName: trackedSet.name,
+                setType: trackedSet.type,
+                missingPart: missingParts[0],
+                ownedCount,
+                totalRequired: requiredParts.length
+            });
+        }
+    }
+
+    return almostComplete;
+}
+
+async function renderAlmostCompleteDigest() {
+    const container = document.getElementById("almostCompleteDigest");
+    if (!container) return;
+
+    const almostComplete = await getAlmostCompleteSets();
+
+    if (almostComplete.length === 0) {
+        container.innerHTML = "";
+        return;
+    }
+
+    let html = `<h3 style="margin-bottom:8px;">Almost There</h3><div class="build-tracker-grid" style="margin-bottom:24px;">`;
+    for (const item of almostComplete) {
+        const safeSetName = item.setName.replace(/'/g, "\\'");
+        const safeSetNameForClick = item.setName.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+
+        html += `<div class="set-card" style="border-color:#eac435;">
+            <h3 class="item-name" onclick="showFarmInfo({name: '${safeSetNameForClick}', set: '${safeSetNameForClick}', type: '${item.setType}'})">${item.setName}</h3>
+            <p>${item.ownedCount} / ${item.totalRequired} components — missing <strong>${item.missingPart}</strong></p>
+        </div>`;
+    }
+    html += `</div>`;
+
+    container.innerHTML = html;
+}
 
 
 // ------------------------------

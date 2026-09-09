@@ -720,6 +720,7 @@ function saveBuildTracker(list) {
     fs.writeFileSync(buildTrackerPath, JSON.stringify(list, null, 2));
 }
 
+
 // ------------------------------
 // Relic Inventory storage
 // ------------------------------
