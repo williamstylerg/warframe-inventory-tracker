@@ -190,6 +190,10 @@ function switchView(viewName) {
     if (viewName === "portfolio") {
         renderPortfolioChart();
     }
+
+    if (viewName === "discover" && discoverIndex.length === 0) {
+        buildDiscoverIndex();
+    }
 }
 
 // Settings Panel
@@ -429,7 +433,7 @@ function renderFarmModal(setName, components, itemType) {
     function renderDropLine(drop) {
         const owned = getOwnedRelicQuantity(drop.relic);
         const ownedTag = owned > 0
-            ? ` <span style="color:#4dd9ec; font-weight:bold;">(${owned} owned)</span>`
+            ? `<div style="margin-left:16px; color:#4dd9ec; font-weight:bold; font-size:0.85em;">${owned} owned</div>`
             : "";
         return `<li>${drop.relic} — ${drop.chance}% (${drop.rarity})${ownedTag}</li>`;
     }
@@ -444,6 +448,10 @@ function renderFarmModal(setName, components, itemType) {
         html += `</ul>`;
     } else {
         const trackableComponents = components.filter(c => isTrackableComponent(c, itemType));
+
+        if (trackableComponents.length === 0) {
+            html += `<p>No farmable components found for ${setName}. It may be purchased directly, or built from resources without a relic source or blueprint drops.</p>`;
+        } else {
         html += `<div class="farm-component-grid">`;
         for (const comp of trackableComponents) {
             const imageUrl = comp.imageName ? `https://cdn.warframestat.us/img/${comp.imageName}` : null;
@@ -465,6 +473,7 @@ function renderFarmModal(setName, components, itemType) {
             html += `</div>`;
         }
         html += `</div>`;
+        }   
     }
 
     body.innerHTML = html;
@@ -1895,4 +1904,59 @@ function filterRelicGrid(query) {
     const q = query.trim().toLowerCase();
     const filtered = q ? relicInventory.filter(r => r.name.toLowerCase().includes(q)) : relicInventory;
     renderRelicGrid(filtered);
+}
+
+
+// ------------------------------
+// DISCOVER
+// ------------------------------
+
+let discoverIndex = [];
+
+function buildDiscoverIndex() {
+    const warframeWeaponEntries = wfcdItems
+        .filter(i => ["Warframes", "Primary", "Secondary", "Melee", "Sentinels", "Archwing", "Arch-Gun", "Arch-Melee", "Mods"].includes(i.category))
+        .map(i => ({ name: i.name, category: i.category === "Mods" ? "mod" : "item", type: i.type }));
+
+    const relicEntries = relicNameList.map(name => ({ name, category: "relic", type: null }));
+
+    discoverIndex = [...warframeWeaponEntries, ...relicEntries];
+}
+
+async function searchDiscover(query) {
+    const q = query.trim().toLowerCase();
+    if (!q) {
+        document.getElementById("discoverSearchResults").innerHTML = "";
+        return;
+    }
+
+    const matches = discoverIndex.filter(i => i.name.toLowerCase().includes(q)).slice(0, 300);
+    renderDiscoverSearchResults(matches);
+}
+
+function renderDiscoverSearchResults(matches) {
+    const container = document.getElementById("discoverSearchResults");
+
+    if (matches.length === 0) {
+        container.innerHTML = "<p>No matches found.</p>";
+        return;
+    }
+
+    container.innerHTML = matches.map(m => {
+        const safeName = m.name.replace(/'/g, "\\'");
+        return `<div class="item-name" style="padding:8px;" onclick="openDiscoverResult('${safeName}', '${m.category}', '${m.type || ""}')">${m.name}</div>`;
+    }).join("");
+}
+
+async function openDiscoverResult(name, category, type) {
+    if (category === "relic") {
+        await showRelicRewards(name);
+    } else if (category === "mod") {
+        await showFarmInfo({ name, set: name, type: "Mod" });
+    } else {
+        // Determine set name the same way your existing add-flow does
+        const parts = name.split(" ");
+        const set = parts.length > 1 ? parts[0] + " " + parts[1] : parts[0];
+        await showFarmInfo({ name, set, type });
+    }
 }
