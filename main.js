@@ -1008,8 +1008,77 @@ function snapshotPortfolioValue() {
 
 
 // ------------------------------
+// App Settings
+// ------------------------------
+
+const appSettingsPath = path.join(app.getPath("userData"), "appSettings.json");
+
+function ensureAppSettingsFile() {
+    if (!fs.existsSync(appSettingsPath)) {
+        fs.writeFileSync(appSettingsPath, JSON.stringify({ platPerDucat: 15 }));
+    }
+}
+
+function loadAppSettings() {
+    ensureAppSettingsFile();
+    try {
+        return JSON.parse(fs.readFileSync(appSettingsPath, "utf8"));
+    } catch {
+        return { platPerDucat: 15 };
+    }
+}
+
+function saveAppSettings(settings) {
+    fs.writeFileSync(appSettingsPath, JSON.stringify(settings, null, 2));
+}
+
+//--------------------------
+// App Settings Handler for Plat/Ducat details
+//--------------------------
+
+async function resolveDucatsForItem(itemName, itemType, itemSet) {
+    if (!itemType.includes("Warframe") && !itemType.includes("Weapon")) return null;
+
+    const components = await fetchFarmData(itemSet, itemType);
+    let shortName = itemName.replace(itemSet, "").trim();
+    if (shortName === "") shortName = "Blueprint";
+
+    const match = components.find(c => c.name === shortName);
+    return match?.ducats ?? null;
+}
+
+// backfill for ducats
+async function backfillDucats() {
+    let inventory = loadInventory();
+    let updated = 0;
+
+    for (const item of inventory) {
+        if (!item.type.includes("Warframe") && !item.type.includes("Weapon")) continue;
+
+        const ducats = await resolveDucatsForItem(item.name, item.type, item.set);
+        if (ducats !== item.ducats) {
+            item.ducats = ducats;
+            updated++;
+        }
+    }
+
+    saveInventory(inventory);
+    return { success: true, updated, total: inventory.length };
+}
+
+
+// ------------------------------
 // IPC handlers
 // ------------------------------
+
+// Settings IPCs
+ipcMain.handle("settings:get", () => loadAppSettings());
+ipcMain.handle("settings:update", (event, updates) => {
+    const settings = { ...loadAppSettings(), ...updates };
+    saveAppSettings(settings);
+    return settings;
+});
+ipcMain.handle("inventory:backfillDucats", async () => await backfillDucats());
 
 // Value Snapshot
 ipcMain.handle("portfolio:getHistory", () => loadPortfolioHistory());
@@ -1066,6 +1135,7 @@ ipcMain.handle("inventory:add", async (event, { name, slug }) => {
 
     const itemType = inferTypeFromTags(tags);
     const tier = await resolveTierForItem(name.replace(" Blueprint", ""), itemType, setName);
+    const ducats = await resolveDucatsForItem(name.replace(" Blueprint", ""), itemType, setName);
 
     let isVaulted = false;
     if (itemType.includes("Warframe") || itemType.includes("Weapon")) {
@@ -1081,6 +1151,7 @@ ipcMain.handle("inventory:add", async (event, { name, slug }) => {
         existing.vaulted = isVaulted;
         existing.set = setName;
         existing.tier = tier;
+        existing.ducats = ducats;
     } else {
         existing = {
             name: name.replace(" Blueprint", ""),
@@ -1092,6 +1163,7 @@ ipcMain.handle("inventory:add", async (event, { name, slug }) => {
             vaulted: isVaulted,
             set: setName,
             tier: tier,
+            ducats: ducats,
             lastUpdated: Date.now()
         };
         inventory.push(existing);

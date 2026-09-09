@@ -99,5 +99,14 @@ contextBridge.exposeInMainWorld("api", {
         ipcRenderer.invoke("item:getVaulted", { name, type }),
 
     getPortfolioHistory: () => 
-        ipcRenderer.invoke("portfolio:getHistory")
+        ipcRenderer.invoke("portfolio:getHistory"),
+
+    getAppSettings: () => 
+        ipcRenderer.invoke("settings:get"),
+
+    updateAppSettings: (updates) => 
+        ipcRenderer.invoke("settings:update", updates),
+
+    backfillDucats: () => 
+        ipcRenderer.invoke("inventory:backfillDucats")
 });

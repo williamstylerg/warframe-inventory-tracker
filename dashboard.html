@@ -657,6 +657,23 @@
                     </div>
                     <button class="settings-btn" onclick="backfillRelicImagesHandler()">Backfill</button>
                 </div>
+
+                <div class="settings-row">
+                    <div class="settings-row-label">
+                        <strong>Ducats</strong>
+                        <span>Backfill Ducats added before this feature existed</span>
+                    </div>
+                    <button class="settings-btn" onclick="backfillDucatsHandler()">Backfill</button>
+                </div>
+
+                <div class="settings-row">
+                    <div class="settings-row-label">
+                        <strong>Plat per Ducat</strong>
+                        <span>Used to compare selling for platinum vs. trading for ducats. <span id="platPerDucatSuggestion"></span></span>
+                    </div>
+                    <input id="platPerDucatInput" type="number" min="1" style="width:60px;" onchange="updatePlatPerDucat(this.value)">
+                </div>
+
             </div>
 
             <div class="settings-section">

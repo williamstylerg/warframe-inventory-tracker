@@ -65,6 +65,9 @@ function showConfirm(message) {
 // INITIALIZATION
 // ------------------------------
 document.addEventListener("DOMContentLoaded", async () => {
+    const version = await window.api.getAppVersion();
+    document.getElementById("appVersionDisplay").textContent = `v${version}`;
+    await loadAppSettings();
     await refreshInventory();
     await refreshTotals();
     const tracker = await window.api.getBuildTracker();
@@ -264,6 +267,12 @@ async function updatePrices() {
     inventory = await window.api.updatePrices();
     renderTable(inventory);
     await refreshTotals();
+
+    const suggested = calculateAveragePlatPerDucat(inventory);
+    const suggestionEl = document.getElementById("platPerDucatSuggestion");
+    if (suggested) {
+        suggestionEl.innerHTML = `Your items currently average ~${suggested}. <a href="#" onclick="event.preventDefault(); updatePlatPerDucat(${suggested});">Use this</a>`;
+    }
 }
 
 
@@ -326,6 +335,7 @@ function renderTable(rows) {
             <th onclick="sortBy('vaulted')">Vaulted${sortArrow('vaulted')}</th>
             <th onclick="sortBy('set')">Set${sortArrow('set')}</th>
             <th onclick="sortBy('quantity')">Qty${sortArrow('quantity')}</th>
+            <th>Ducats</th>
             <th onclick="sortBy('price')">Price${sortArrow('price')}</th>
             <th onclick="sortBy('total')">Total${sortArrow('total')}</th>
             <th onclick="sortBy('lastUpdated')">Updated${sortArrow('lastUpdated')}</th>
@@ -351,9 +361,16 @@ function renderTable(rows) {
             </td>
 
             <td>
-                ${item.price}
-                <button onclick="showPriceHistory('${item.slug}', '${item.name.replace(/'/g, "\\'")}')" title="View price history" style="background:#2a2a2a; border:1px solid #444; border-radius:4px; padding:4px 8px; margin-right:4px;">📈</button>
+                ${getDucatComparisonCell(item)}
             </td>
+
+            <td>
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <span style="min-width:36px; display:inline-block; text-align:right;">${item.price}</span>
+                    <button onclick="showPriceHistory('${item.slug}', '${item.name.replace(/'/g, "\\'")}')" title="View price history" style="background:#2a2a2a; border:1px solid #444; border-radius:4px; padding:4px 8px;">📈</button>
+                </div>
+            </td>
+
             <td>${total}</td>
             <td>${new Date(item.lastUpdated).toLocaleDateString()}</td>
 
@@ -367,6 +384,7 @@ function renderTable(rows) {
 
     table.innerHTML = html;
 }
+
 
 
 // ------------------------------
@@ -1622,9 +1640,9 @@ function isArchwingRelated(itemName) {
 }
 
 
-/////////////////////////
+//--------------------------
 // PORTFOLIO SNAPSHOT
-/////////////////////////
+//--------------------------
 
 let portfolioChartInstance = null;
 
@@ -1709,4 +1727,61 @@ async function renderPortfolioChart() {
             }
         }
     });
+}
+
+
+//--------------------------
+// DUCATS/PLAT LOGIC
+//--------------------------
+
+async function backfillDucatsHandler() {
+    document.getElementById("settingsPanel").style.display = "none";
+    const result = await window.api.backfillDucats();
+    inventory = await window.api.getInventory();
+    renderTable(inventory);
+    await showAlert(`Updated ducat data for ${result.updated} of ${result.total} items.`);
+}
+
+let platPerDucat = 15;
+
+async function loadAppSettings() {
+    const settings = await window.api.getAppSettings();
+    platPerDucat = settings.platPerDucat || 15;
+    document.getElementById("platPerDucatInput").value = platPerDucat;
+}
+
+async function updatePlatPerDucat(value) {
+    const numValue = Math.max(0.01, Number(value) || 15);
+    platPerDucat = numValue;
+    await window.api.updateAppSettings({ platPerDucat: numValue });
+    document.getElementById("platPerDucatInput").value = numValue;
+    renderTable(inventory);
+}
+// helper for ducats
+
+function getDucatComparisonCell(item) {
+    if (item.ducats === null || item.ducats === undefined) return "—";
+
+    const ducatEquivalent = item.ducats * platPerDucat;
+    const platPrice = Number(item.price);
+
+    let label = "";
+    if (platPrice > ducatEquivalent) {
+        label = `<div style="color:#4dd9ec; font-size:0.8em;">Sell for Plat</div>`;
+    } else if (ducatEquivalent > platPrice) {
+        label = `<div style="color:#eac435; font-size:0.8em;">Trade for Ducats</div>`;
+    } else {
+        label = `<div style="font-size:0.8em;">Even</div>`;
+    }
+
+    return `<div>${item.ducats}d</div>${label}`;
+}
+
+function calculateAveragePlatPerDucat(inv) {
+    const validItems = inv.filter(i => i.ducats && i.ducats > 0 && i.price > 0);
+    if (validItems.length === 0) return null;
+
+    const ratios = validItems.map(i => i.price / i.ducats);
+    const average = ratios.reduce((sum, r) => sum + r, 0) / ratios.length;
+    return Math.round(average * 100) / 100;
 }
