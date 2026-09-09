@@ -108,5 +108,8 @@ contextBridge.exposeInMainWorld("api", {
         ipcRenderer.invoke("settings:update", updates),
 
     backfillDucats: () => 
-        ipcRenderer.invoke("inventory:backfillDucats")
+        ipcRenderer.invoke("inventory:backfillDucats"),
+
+    exportInventoryCsv: () => 
+        ipcRenderer.invoke("inventory:exportCsv")
 });

@@ -587,8 +587,8 @@ async function combineSetComponents(setName) {
 // Create the main window
 function createWindow() {
     mainWindow = new BrowserWindow({
-        width: 1400,
-        height: 800,
+        width: 1800,
+        height:1000,
         webPreferences: {
             preload: path.join(__dirname, "preload.js")
         },
@@ -1067,9 +1067,77 @@ async function backfillDucats() {
 }
 
 
+//-------------------------------
+// CSV Export
+//-------------------------------
+
+async function exportInventoryCsv() {
+    const inventory = loadInventory();
+
+    const headers = ["Name", "Type", "Rarity", "Vaulted", "Set", "Quantity", "Price", "Total Value", "Ducats", "Tier", "Last Updated"];
+
+    const rows = inventory.map(item => [
+        item.name,
+        item.type,
+        item.rarity,
+        item.vaulted ? "Yes" : "No",
+        item.set,
+        item.quantity,
+        item.price,
+        item.price * item.quantity,
+        item.ducats ?? "",
+        item.tier ?? "",
+        new Date(item.lastUpdated).toLocaleDateString()
+    ]);
+
+    // Escape fields containing commas, quotes, or newlines per CSV spec
+    function escapeCsvField(field) {
+        const str = String(field);
+        if (str.includes(",") || str.includes('"') || str.includes("\n")) {
+            return `"${str.replace(/"/g, '""')}"`;
+        }
+        return str;
+    }
+
+    const csvLines = [headers, ...rows].map(row => row.map(escapeCsvField).join(","));
+    const csvContent = csvLines.join("\n");
+
+    const result = await dialog.showSaveDialog(mainWindow, {
+        title: "Export Inventory to CSV",
+        defaultPath: `warframe-inventory-${new Date().toISOString().slice(0, 10)}.csv`,
+        filters: [{ name: "CSV File", extensions: ["csv"] }]
+    });
+
+    if (result.canceled) {
+        return { success: false, reason: "Export cancelled." };
+    }
+
+    fs.writeFileSync(result.filePath, csvContent);
+    return { success: true, path: result.filePath };
+}
+
+async function exportCsvHandler() {
+    document.getElementById("settingsPanel").style.display = "none";
+    const result = await window.api.exportInventoryCsv();
+
+    if (!result.success) {
+        if (result.reason !== "Export cancelled.") {
+            await showAlert(result.reason);
+        }
+        return;
+    }
+
+    await showAlert(`CSV exported to:\n${result.path}`);
+}
+
+
 // ------------------------------
 // IPC handlers
 // ------------------------------
+
+
+// CSV Export
+ipcMain.handle("inventory:exportCsv", async () => await exportInventoryCsv());
 
 // Settings IPCs
 ipcMain.handle("settings:get", () => loadAppSettings());

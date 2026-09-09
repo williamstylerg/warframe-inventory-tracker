@@ -621,6 +621,13 @@ async function renderBuildTracker(rows) {
             !trackedSet.name.includes("Prime");
 
         return typeMatch && primeMatch;
+    }).sort((a, b) => {
+    const aIsPrime = a.name.includes("Prime");
+    const bIsPrime = b.name.includes("Prime");
+
+    if (aIsPrime !== bIsPrime) {
+        return aIsPrime ? -1 : 1; // Primes always sort first
+    }
     });
 
     for (const trackedSet of filteredRows) {
