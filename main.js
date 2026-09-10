@@ -4,6 +4,15 @@ const fs = require("fs");
 const axios = require("axios");
 const { autoUpdater } = require("electron-updater");
 
+const {
+    median,
+    chanceToTier,
+    summarizeDrops,
+    assignRarityTiers,
+    normalizeName,
+    getEndpointForType,
+} = require("./farmLogic");
+
 app.setName("Warframe Inventory Tracker");
 
 let mainWindow;
@@ -162,56 +171,6 @@ async function fetchWithRetry(url, retries = 1) {
     }
 }
 
-function summarizeDrops(drops) {
-    const bestByRelic = {};
-
-    for (const drop of drops) {
-        // Strip "(Exceptional)", "(Flawless)", "(Radiant)" to get the base relic name
-        const baseRelicName = drop.location
-            .replace(/\s*\((Intact|Exceptional|Flawless|Radiant)\)\s*$/i, "")
-            .trim();
-
-        if (!bestByRelic[baseRelicName] || drop.chance > bestByRelic[baseRelicName].chance) {
-            bestByRelic[baseRelicName] = {
-                relic: baseRelicName,
-                chance: drop.chance,
-                rarity: drop.rarity,
-            };
-        }
-    }
-
-    // Return as an array, sorted by chance descending (best odds first)
-    return Object.values(bestByRelic).sort((a, b) => b.chance - a.chance);
-}
-
-// Function for rarity based on drop rate
-
-function median(numbers) {
-    const sorted = [...numbers].sort((a, b) => a - b);
-    const mid = Math.floor(sorted.length / 2);
-    return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
-}
-
-function chanceToTier(chance) {
-    if (chance === undefined || chance === null) return null;
-    if (chance <= 15) return "gold";
-    if (chance <= 22.665) return "silver";
-    return "bronze";
-}
-
-function assignRarityTiers(components) {
-    return components.map((comp) => {
-        const summarized = summarizeDrops(comp.drops || []);
-        const medianChance = summarized.length ? median(summarized.map((d) => d.chance)) : null;
-        return {
-            name: comp.name,
-            ducats: comp.ducats,
-            tier: chanceToTier(medianChance),
-            imageName: comp.imageName || null,
-            drops: summarized,
-        };
-    });
-}
 // Fetch farm data for mods
 
 async function fetchModFarmData(modName) {
@@ -247,26 +206,6 @@ async function fetchModFarmData(modName) {
 }
 
 // This calls the farm data from the com dev api
-
-function getEndpointForType(itemType) {
-    if (itemType.includes("Warframe")) return "warframes";
-    if (itemType === "Mod") return "mods";
-    const weaponTypes = [
-        "Weapon",
-        "Rifle",
-        "Pistol",
-        "Melee",
-        "Shotgun",
-        "Sentinel",
-        "Archwing",
-        "Archgun",
-        "Archmelee",
-        "Secondary",
-        "Primary",
-    ];
-    if (weaponTypes.some((t) => itemType.includes(t))) return "weapons";
-    return null;
-}
 
 async function fetchFarmData(setName, itemType) {
     const cache = loadFarmCache();
@@ -355,8 +294,8 @@ async function resolveTierForItem(itemName, itemType, itemSet) {
         "Shotgun",
         "Sentinel",
         "Archwing",
-        "Archgun",
-        "Archmelee",
+        "Arch-gun",
+        "Arch-melee",
         "Secondary",
         "Primary",
     ];
