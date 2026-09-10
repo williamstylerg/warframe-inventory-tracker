@@ -1,8 +1,8 @@
 // ------------------------------
 // GLOBALS
 // ------------------------------
-let allItems = [];        // autocomplete list (from Warframe Market API)
-let inventory = [];       // current inventory rows
+let allItems = []; // autocomplete list (from Warframe Market API)
+let inventory = []; // current inventory rows
 let sortColumn = null;
 let sortAsc = true;
 let wfcdItems = []; // WFCD catalog for build-tracker autocomplete
@@ -75,7 +75,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     await refreshRelics();
 });
 
-
 // ------------------------------
 // Helper Function For Table Visuals
 // ------------------------------
@@ -117,7 +116,6 @@ function getDisplayType(item) {
     return item.type;
 }
 
-
 // ------------------------------
 // REFRESH INVENTORY TABLE
 // ------------------------------
@@ -156,7 +154,6 @@ async function combineSet() {
     document.getElementById("combineSetName").value = "";
 }
 
-
 // ------------------------------
 // REFRESH TOTALS
 // ------------------------------
@@ -180,10 +177,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 // Logic for the sidebar
 function switchView(viewName) {
-    document.querySelectorAll(".view").forEach(el => el.style.display = "none");
+    document.querySelectorAll(".view").forEach((el) => (el.style.display = "none"));
     document.getElementById("view-" + viewName).style.display = "block";
 
-    document.querySelectorAll(".nav-btn").forEach(btn => btn.classList.remove("active"));
+    document.querySelectorAll(".nav-btn").forEach((btn) => btn.classList.remove("active"));
     const targetBtn = document.querySelector(`.nav-btn[data-view="${viewName}"]`);
     if (targetBtn) targetBtn.classList.add("active");
 
@@ -226,7 +223,7 @@ async function backfillTiersHandler() {
 async function refreshAllRelicDataHandler() {
     document.getElementById("settingsPanel").style.display = "none";
     const confirmed = await showConfirm(
-        "This will refetch all relic drop data from the live source. It may take a moment. Continue?"
+        "This will refetch all relic drop data from the live source. It may take a moment. Continue?",
     );
     if (!confirmed) return;
 
@@ -263,7 +260,6 @@ async function addItem() {
     hideSuggestions();
 }
 
-
 // ------------------------------
 // UPDATE PRICES
 // ------------------------------
@@ -279,7 +275,6 @@ async function updatePrices() {
     }
 }
 
-
 // ------------------------------
 // UPDATE QUANTITY
 // ------------------------------
@@ -288,7 +283,6 @@ async function updateQuantity(slug, newQuantity) {
     renderTable(updated);
     await refreshTotals();
 }
-
 
 // ------------------------------
 // DELETE ITEM
@@ -306,7 +300,9 @@ async function deleteItem(slug) {
 async function clearFarmCacheHandler() {
     document.getElementById("settingsPanel").style.display = "none";
 
-    const confirmed = await showConfirm("This will clear cached farm/component data. It will be refetched automatically as needed. Continue?");
+    const confirmed = await showConfirm(
+        "This will clear cached farm/component data. It will be refetched automatically as needed. Continue?",
+    );
     if (!confirmed) return;
 
     const result = await window.api.clearFarmCache();
@@ -333,16 +329,16 @@ function renderTable(rows) {
 
     let html = `
         <tr>
-            <th onclick="sortBy('name')">Name${sortArrow('name')}</th>
-            <th onclick="sortBy('type')">Type${sortArrow('type')}</th>
-            <th onclick="sortBy('rarity')">Rarity${sortArrow('rarity')}</th>
-            <th onclick="sortBy('vaulted')">Vaulted${sortArrow('vaulted')}</th>
-            <th onclick="sortBy('set')">Set${sortArrow('set')}</th>
-            <th onclick="sortBy('quantity')">Qty${sortArrow('quantity')}</th>
+            <th onclick="sortBy('name')">Name${sortArrow("name")}</th>
+            <th onclick="sortBy('type')">Type${sortArrow("type")}</th>
+            <th onclick="sortBy('rarity')">Rarity${sortArrow("rarity")}</th>
+            <th onclick="sortBy('vaulted')">Vaulted${sortArrow("vaulted")}</th>
+            <th onclick="sortBy('set')">Set${sortArrow("set")}</th>
+            <th onclick="sortBy('quantity')">Qty${sortArrow("quantity")}</th>
             <th>Ducats</th>
-            <th onclick="sortBy('price')">Price${sortArrow('price')}</th>
-            <th onclick="sortBy('total')">Total${sortArrow('total')}</th>
-            <th onclick="sortBy('lastUpdated')">Updated${sortArrow('lastUpdated')}</th>
+            <th onclick="sortBy('price')">Price${sortArrow("price")}</th>
+            <th onclick="sortBy('total')">Total${sortArrow("total")}</th>
+            <th onclick="sortBy('lastUpdated')">Updated${sortArrow("lastUpdated")}</th>
             <th>Delete</th>
         </tr>
         `;
@@ -383,13 +379,10 @@ function renderTable(rows) {
             </td>
         </tr>
         `;
-
     }
 
     table.innerHTML = html;
 }
-
-
 
 // ------------------------------
 // FARM INFO MODAL
@@ -413,8 +406,11 @@ document.addEventListener("keydown", (event) => {
 });
 
 function getOwnedRelicQuantity(relicFullName) {
-    const key = relicFullName.trim().toLowerCase().replace(/\s+relic$/i, "");
-    const match = relicInventory.find(r => r.name.trim().toLowerCase() === key);
+    const key = relicFullName
+        .trim()
+        .toLowerCase()
+        .replace(/\s+relic$/i, "");
+    const match = relicInventory.find((r) => r.name.trim().toLowerCase() === key);
     return match ? match.quantity : 0;
 }
 
@@ -432,9 +428,10 @@ function renderFarmModal(setName, components, itemType) {
 
     function renderDropLine(drop) {
         const owned = getOwnedRelicQuantity(drop.relic);
-        const ownedTag = owned > 0
-            ? `<div style="margin-left:16px; color:#4dd9ec; font-weight:bold; font-size:0.85em;">${owned} owned</div>`
-            : "";
+        const ownedTag =
+            owned > 0
+                ? `<div style="margin-left:16px; color:#4dd9ec; font-weight:bold; font-size:0.85em;">${owned} owned</div>`
+                : "";
         return `<li>${drop.relic} — ${drop.chance}% (${drop.rarity})${ownedTag}</li>`;
     }
 
@@ -447,33 +444,35 @@ function renderFarmModal(setName, components, itemType) {
         }
         html += `</ul>`;
     } else {
-        const trackableComponents = components.filter(c => isTrackableComponent(c, itemType));
+        const trackableComponents = components.filter((c) => isTrackableComponent(c, itemType));
 
         if (trackableComponents.length === 0) {
             html += `<p>No farmable components found for ${setName}. It may be purchased directly, or built from resources without a relic source or blueprint drops.</p>`;
         } else {
-        html += `<div class="farm-component-grid">`;
-        for (const comp of trackableComponents) {
-            const imageUrl = comp.imageName ? `https://cdn.warframestat.us/img/${comp.imageName}` : null;
+            html += `<div class="farm-component-grid">`;
+            for (const comp of trackableComponents) {
+                const imageUrl = comp.imageName
+                    ? `https://cdn.warframestat.us/img/${comp.imageName}`
+                    : null;
 
-            html += `<div class="farm-component-box">`;
-            if (imageUrl) {
-                html += `<img src="${imageUrl}" class="farm-component-image" alt="${comp.name}">`;
-            }
-            html += `<h3>${comp.name}</h3>`;
-            if (!comp.drops || comp.drops.length === 0) {
-                html += `<p><em>No relic drop data (likely a resource or non-relic item).</em></p>`;
-            } else {
-                html += `<ul class="farm-component-drops">`;
-                for (const drop of comp.drops) {
-                    html += renderDropLine(drop);
+                html += `<div class="farm-component-box">`;
+                if (imageUrl) {
+                    html += `<img src="${imageUrl}" class="farm-component-image" alt="${comp.name}">`;
                 }
-                html += `</ul>`;
+                html += `<h3>${comp.name}</h3>`;
+                if (!comp.drops || comp.drops.length === 0) {
+                    html += `<p><em>No relic drop data (likely a resource or non-relic item).</em></p>`;
+                } else {
+                    html += `<ul class="farm-component-drops">`;
+                    for (const drop of comp.drops) {
+                        html += renderDropLine(drop);
+                    }
+                    html += `</ul>`;
+                }
+                html += `</div>`;
             }
             html += `</div>`;
         }
-        html += `</div>`;
-        }   
     }
 
     body.innerHTML = html;
@@ -484,7 +483,6 @@ function closeFarmModal() {
     document.getElementById("farmModal").style.display = "none";
 }
 
-
 // ------------------------------
 // BUILD TRACKER
 // ------------------------------
@@ -493,16 +491,14 @@ async function addToBuildTracker(name, set, type) {
     const normalized = name.trim().toLowerCase();
 
     // Check if this name matches something on warframe.market
-    const marketMatch = allItems.find(
-        i => i.name.trim().toLowerCase() === normalized
-    );
+    const marketMatch = allItems.find((i) => i.name.trim().toLowerCase() === normalized);
 
     const tracker = await window.api.addToBuildTracker({
         name,
         set,
         type,
         marketSlug: marketMatch ? marketMatch.slug : null,
-        tradable: !!marketMatch
+        tradable: !!marketMatch,
     });
 
     return tracker;
@@ -511,7 +507,11 @@ async function addToBuildTracker(name, set, type) {
 async function checkOffComponent(setName, partName, isPrime, itemCategory) {
     if (isPrime) {
         const fullName = `${setName} ${partName}`;
-        const slugBase = fullName.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
+        const slugBase = fullName
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "_")
+            .replace(/^_|_$/g, "");
 
         // Blueprint component itself: no suffix needed (it already ends in "blueprint")
         // Warframe parts (Chassis/Neuroptics/Systems): need "_blueprint" appended
@@ -541,7 +541,7 @@ function showBuildTrackerSuggestions(value) {
     }
 
     const v = value.toLowerCase();
-    const matches = wfcdItems.filter(i => i.name.toLowerCase().includes(v)).slice(0, 10);
+    const matches = wfcdItems.filter((i) => i.name.toLowerCase().includes(v)).slice(0, 10);
 
     if (matches.length === 0) {
         box.style.display = "none";
@@ -549,7 +549,7 @@ function showBuildTrackerSuggestions(value) {
     }
 
     box.innerHTML = matches
-        .map(m => {
+        .map((m) => {
             const safeName = m.name.replace(/'/g, "\\'");
             const safeType = (m.type || "").replace(/'/g, "\\'");
             const safeCategory = (m.category || "").replace(/'/g, "\\'");
@@ -580,7 +580,7 @@ async function uncheckOffComponent(setName, partName, isPrime) {
     if (isPrime) {
         const fullName = `${setName} ${partName}`;
         const existingItem = inventory.find(
-            i => normalizeNameClient(i.name) === normalizeNameClient(fullName)
+            (i) => normalizeNameClient(i.name) === normalizeNameClient(fullName),
         );
         if (existingItem) {
             inventory = await window.api.deleteItem(existingItem.slug);
@@ -618,34 +618,40 @@ async function renderBuildTracker(rows) {
 
     let html = `<div class="build-tracker-grid">`;
 
-    const filteredRows = rows.filter(trackedSet => {
-        const typeMatch =
-            buildTrackerFilter === "all" ? true :
-            buildTrackerFilter === "warframe" ? trackedSet.type.includes("Warframe") :
-            !trackedSet.type.includes("Warframe");
+    const filteredRows = rows
+        .filter((trackedSet) => {
+            const typeMatch =
+                buildTrackerFilter === "all"
+                    ? true
+                    : buildTrackerFilter === "warframe"
+                      ? trackedSet.type.includes("Warframe")
+                      : !trackedSet.type.includes("Warframe");
 
-        const primeMatch =
-            buildTrackerPrimeFilter === "all" ? true :
-            buildTrackerPrimeFilter === "prime" ? trackedSet.name.includes("Prime") :
-            !trackedSet.name.includes("Prime");
+            const primeMatch =
+                buildTrackerPrimeFilter === "all"
+                    ? true
+                    : buildTrackerPrimeFilter === "prime"
+                      ? trackedSet.name.includes("Prime")
+                      : !trackedSet.name.includes("Prime");
 
             const searchMatch = buildTrackerSearchQuery
-            ? trackedSet.name.toLowerCase().includes(buildTrackerSearchQuery)
-            : true;
+                ? trackedSet.name.toLowerCase().includes(buildTrackerSearchQuery)
+                : true;
 
-        return typeMatch && primeMatch && searchMatch;
-    }).sort((a, b) => {
-    const aIsPrime = a.name.includes("Prime");
-    const bIsPrime = b.name.includes("Prime");
+            return typeMatch && primeMatch && searchMatch;
+        })
+        .sort((a, b) => {
+            const aIsPrime = a.name.includes("Prime");
+            const bIsPrime = b.name.includes("Prime");
 
-    if (aIsPrime !== bIsPrime) {
-        return aIsPrime ? -1 : 1; // Primes always sort first
-    }
-    });
+            if (aIsPrime !== bIsPrime) {
+                return aIsPrime ? -1 : 1; // Primes always sort first
+            }
+        });
 
     for (const trackedSet of filteredRows) {
         const components = await window.api.getFarmInfo(trackedSet.name, trackedSet.type);
-        const requiredParts = components.filter(c => isTrackableComponent(c, trackedSet.type));
+        const requiredParts = components.filter((c) => isTrackableComponent(c, trackedSet.type));
         const imageName = await window.api.getItemImage(trackedSet.name, trackedSet.type);
         const imageUrl = imageName ? `https://cdn.warframestat.us/img/${imageName}` : null;
 
@@ -677,7 +683,9 @@ async function renderBuildTracker(rows) {
                 if (isPrime) {
                     const fullName = `${trackedSet.name} ${part.name}`;
                     owned = inventory.some(
-                        invItem => normalizeNameClient(invItem.name) === normalizeNameClient(fullName) && invItem.quantity > 0
+                        (invItem) =>
+                            normalizeNameClient(invItem.name) === normalizeNameClient(fullName) &&
+                            invItem.quantity > 0,
                     );
                 } else {
                     owned = (trackedSet.obtainedParts || []).includes(part.name);
@@ -696,7 +704,7 @@ async function renderBuildTracker(rows) {
             html += `</ul>`;
 
             if (allOwned) {
-                const isPrimeSet = requiredParts.some(p => p.ducats !== undefined);
+                const isPrimeSet = requiredParts.some((p) => p.ducats !== undefined);
                 if (isPrimeSet) {
                     html += `<button onclick="combineSetFromPanel('${safeSetName}')">Combine Set</button>`;
                 } else {
@@ -751,7 +759,11 @@ async function promoteToInventory(name, slug) {
 // The normalize name function is duplicated into main.js as well.  any changes here or there need to be duplicated (for now)
 
 function normalizeNameClient(name) {
-    return name.trim().toLowerCase().replace(/\s+blueprint$/i, "").replace(/\s+/g, " ");
+    return name
+        .trim()
+        .toLowerCase()
+        .replace(/\s+blueprint$/i, "")
+        .replace(/\s+/g, " ");
 }
 
 async function removeItemFromBuildTracker(name) {
@@ -765,7 +777,19 @@ function normalizeWfcdType(wfcdType, wfcdCategory) {
     if (wfcdCategory === "Arcanes") return "Arcane";
     if (wfcdCategory === "Relics") return "Relic";
     // Weapons cover many WFCD "type" values (Rifle, Pistol, Melee, Shotgun, etc.)
-    if (["Rifle", "Pistol", "Melee", "Shotgun", "Sentinel Weapon", "Archwing", "Archgun", "Archmelee"].includes(wfcdType)) return "Weapon Part";
+    if (
+        [
+            "Rifle",
+            "Pistol",
+            "Melee",
+            "Shotgun",
+            "Sentinel Weapon",
+            "Archwing",
+            "Archgun",
+            "Archmelee",
+        ].includes(wfcdType)
+    )
+        return "Weapon Part";
     return "Misc";
 }
 
@@ -791,16 +815,14 @@ async function addItemToBuildTracker() {
 
     // Check whether this item exists on warframe.market
     const normalizedName = normalizeNameClient(name);
-    const marketMatch = allItems.find(
-        i => normalizeNameClient(i.name) === normalizedName
-    );
+    const marketMatch = allItems.find((i) => normalizeNameClient(i.name) === normalizedName);
 
     const tracker = await window.api.addToBuildTracker({
         name,
         set,
         type,
         marketSlug: marketMatch ? marketMatch.slug : null,
-        tradable: !!marketMatch
+        tradable: !!marketMatch,
     });
 
     await renderBuildTracker(tracker);
@@ -823,7 +845,11 @@ function toggleBuildTrackerFilterMenu() {
 
 document.addEventListener("click", (event) => {
     const menu = document.getElementById("buildTrackerFilterMenu");
-    if (menu.style.display === "block" && !menu.contains(event.target) && event.target.getAttribute("onclick") !== "toggleBuildTrackerFilterMenu()") {
+    if (
+        menu.style.display === "block" &&
+        !menu.contains(event.target) &&
+        event.target.getAttribute("onclick") !== "toggleBuildTrackerFilterMenu()"
+    ) {
         menu.style.display = "none";
     }
 });
@@ -835,7 +861,7 @@ async function getAlmostCompleteSets() {
 
     for (const trackedSet of buildTracker) {
         const components = await window.api.getFarmInfo(trackedSet.name, trackedSet.type);
-        const requiredParts = components.filter(c => isTrackableComponent(c, trackedSet.type));
+        const requiredParts = components.filter((c) => isTrackableComponent(c, trackedSet.type));
 
         if (requiredParts.length === 0) continue;
 
@@ -849,7 +875,9 @@ async function getAlmostCompleteSets() {
             if (isPrime) {
                 const fullName = `${trackedSet.name} ${part.name}`;
                 owned = inventory.some(
-                    invItem => normalizeNameClient(invItem.name) === normalizeNameClient(fullName) && invItem.quantity > 0
+                    (invItem) =>
+                        normalizeNameClient(invItem.name) === normalizeNameClient(fullName) &&
+                        invItem.quantity > 0,
                 );
             } else {
                 owned = (trackedSet.obtainedParts || []).includes(part.name);
@@ -870,7 +898,7 @@ async function getAlmostCompleteSets() {
                 setType: trackedSet.type,
                 missingPart: missingParts[0],
                 ownedCount,
-                totalRequired: requiredParts.length
+                totalRequired: requiredParts.length,
             });
         }
     }
@@ -904,7 +932,6 @@ async function renderAlmostCompleteDigest() {
     container.innerHTML = html;
 }
 
-
 // ------------------------------
 // RELIC INVENTORY
 // ------------------------------
@@ -928,7 +955,9 @@ function renderRelicGrid(relics) {
     let html = "";
     for (const relic of sorted) {
         const safeName = relic.name.replace(/'/g, "\\'");
-        const imageUrl = relic.imageName ? `https://cdn.warframestat.us/img/${relic.imageName}` : null;
+        const imageUrl = relic.imageName
+            ? `https://cdn.warframestat.us/img/${relic.imageName}`
+            : null;
 
         html += `<div class="set-card">`;
         if (imageUrl) {
@@ -947,9 +976,8 @@ function renderRelicGrid(relics) {
     container.innerHTML = html;
 }
 
-
 async function adjustRelicQuantity(name, delta) {
-    const relic = relicInventory.find(r => r.name === name);
+    const relic = relicInventory.find((r) => r.name === name);
     const newQuantity = (relic ? relic.quantity : 0) + delta;
 
     relicInventory = await window.api.updateRelicQuantity(name, newQuantity);
@@ -990,7 +1018,6 @@ function sortRelics(relics) {
         return nameA.localeCompare(nameB);
     });
 }
-
 
 // Relic front end for Autofill
 
@@ -1034,7 +1061,9 @@ function showRelicSuggestions(value) {
     }
 
     const v = value.toLowerCase();
-    currentRelicSuggestions = relicNameList.filter(name => name.toLowerCase().includes(v)).slice(0, 100);
+    currentRelicSuggestions = relicNameList
+        .filter((name) => name.toLowerCase().includes(v))
+        .slice(0, 100);
 
     if (currentRelicSuggestions.length === 0) {
         box.style.display = "none";
@@ -1073,7 +1102,10 @@ function handleRelicSearchKeydown(event) {
 
     if (event.key === "ArrowDown") {
         event.preventDefault();
-        relicSuggestionIndex = Math.min(relicSuggestionIndex + 1, currentRelicSuggestions.length - 1);
+        relicSuggestionIndex = Math.min(
+            relicSuggestionIndex + 1,
+            currentRelicSuggestions.length - 1,
+        );
         renderRelicSuggestionBox();
     } else if (event.key === "ArrowUp") {
         event.preventDefault();
@@ -1106,7 +1138,7 @@ function getRelicImageName(relicFullName) {
         Lith: "RelicLithD.png",
         Meso: "RelicMesoD.png",
         Neo: "RelicNeoD.png",
-        Axi: "RelicAxiD.png"
+        Axi: "RelicAxiD.png",
     };
     return tierMap[tier] || null;
 }
@@ -1139,7 +1171,10 @@ async function buildRelicRewardMap() {
         for (const state of ["Intact", "Exceptional", "Flawless", "Radiant"]) {
             const rewards = dropData.rewards[state] || [];
             for (const reward of rewards) {
-                const normalized = reward.itemName.trim().toLowerCase().replace(/\s+blueprint$/i, "");
+                const normalized = reward.itemName
+                    .trim()
+                    .toLowerCase()
+                    .replace(/\s+blueprint$/i, "");
                 map.add(normalized);
             }
         }
@@ -1162,7 +1197,7 @@ async function runDiscoverNewSets() {
 async function trackDiscoveredSet(setName, setType) {
     await window.api.addToBuildTracker({ name: setName, type: setType });
 
-    lastDiscoveryResults = lastDiscoveryResults.filter(d => d.setName !== setName);
+    lastDiscoveryResults = lastDiscoveryResults.filter((d) => d.setName !== setName);
     await renderDiscoverResults(lastDiscoveryResults);
 
     const tracker = await window.api.getBuildTracker();
@@ -1172,13 +1207,24 @@ async function trackDiscoveredSet(setName, setType) {
 }
 
 function getAllPrimeSetNames() {
-    const relevantCategories = ["Warframes", "Primary", "Secondary", "Melee", "Sentinels", "Archwing", "Arch-Gun", "Arch-Melee"];
-    return wfcdItems.filter(i => i.name.includes("Prime") && relevantCategories.includes(i.category));
+    const relevantCategories = [
+        "Warframes",
+        "Primary",
+        "Secondary",
+        "Melee",
+        "Sentinels",
+        "Archwing",
+        "Arch-Gun",
+        "Arch-Melee",
+    ];
+    return wfcdItems.filter(
+        (i) => i.name.includes("Prime") && relevantCategories.includes(i.category),
+    );
 }
 
 async function discoverNewSets() {
     const allSets = getAllPrimeSetNames();
-    const trackedNames = new Set(buildTracker.map(t => t.name.trim().toLowerCase()));
+    const trackedNames = new Set(buildTracker.map((t) => t.name.trim().toLowerCase()));
     const relicRewardMap = await buildRelicRewardMap();
 
     const discoveries = [];
@@ -1187,7 +1233,7 @@ async function discoverNewSets() {
         if (trackedNames.has(set.name.trim().toLowerCase())) continue;
 
         const components = await window.api.getFarmInfo(set.name, set.type);
-        const requiredParts = components.filter(c => isTrackableComponent(c, set.type));
+        const requiredParts = components.filter((c) => isTrackableComponent(c, set.type));
 
         if (requiredParts.length === 0) continue;
 
@@ -1195,7 +1241,10 @@ async function discoverNewSets() {
         const matchedParts = [];
 
         for (const part of requiredParts) {
-            const fullPartName = `${set.name} ${part.name}`.trim().toLowerCase().replace(/\s+blueprint$/i, "");
+            const fullPartName = `${set.name} ${part.name}`
+                .trim()
+                .toLowerCase()
+                .replace(/\s+blueprint$/i, "");
             if (relicRewardMap.has(fullPartName)) {
                 matchedCount++;
                 matchedParts.push(part.name);
@@ -1208,7 +1257,7 @@ async function discoverNewSets() {
                 setType: set.type,
                 matchedCount,
                 totalRequired: requiredParts.length,
-                matchedParts
+                matchedParts,
             });
         }
     }
@@ -1224,14 +1273,14 @@ async function renderDiscoverResults(discoveries) {
         return;
     }
 
-    const filtered = discoveries.filter(d => {
+    const filtered = discoveries.filter((d) => {
         if (discoverFilter === "all") return true;
         if (discoverFilter === "warframe") return d.setType.includes("Warframe");
         if (discoverFilter === "weapon") return !d.setType.includes("Warframe");
         return true;
     });
 
-    filtered.sort((a, b) => (b.matchedCount / b.totalRequired) - (a.matchedCount / a.totalRequired));
+    filtered.sort((a, b) => b.matchedCount / b.totalRequired - a.matchedCount / a.totalRequired);
 
     let html = "";
     for (const d of filtered) {
@@ -1262,7 +1311,6 @@ function setDiscoverFilter(filter) {
     discoverFilter = filter;
     renderDiscoverResults(lastDiscoveryResults);
 }
-
 
 // ------------------------------
 // Relic Reward Modal
@@ -1300,7 +1348,6 @@ document.getElementById("relicRewardsModal").addEventListener("click", (event) =
     }
 });
 
-
 // ------------------------------
 // PRICE HISTORY MODAL
 // ------------------------------
@@ -1318,10 +1365,10 @@ async function showPriceHistory(slug, itemName) {
         return;
     }
 
-    const labels = history.map(d => new Date(d.date).toLocaleDateString());
-    const movingAvgData = history.map(d => d.movingAvg);
-    const medianData = history.map(d => d.median);
-    const volumeData = history.map(d => d.volume);
+    const labels = history.map((d) => new Date(d.date).toLocaleDateString());
+    const movingAvgData = history.map((d) => d.movingAvg);
+    const medianData = history.map((d) => d.median);
+    const volumeData = history.map((d) => d.volume);
 
     const priceCtx = document.getElementById("priceHistoryChart").getContext("2d");
     const volumeCtx = document.getElementById("volumeChart").getContext("2d");
@@ -1341,7 +1388,7 @@ async function showPriceHistory(slug, itemName) {
                     backgroundColor: "#2a6df4",
                     tension: 0.2,
                     pointRadius: 0,
-                    borderWidth: 2
+                    borderWidth: 2,
                 },
                 {
                     label: "Median (Plat)",
@@ -1351,9 +1398,9 @@ async function showPriceHistory(slug, itemName) {
                     tension: 0.2,
                     pointRadius: 0,
                     borderWidth: 1,
-                    borderDash: [3, 3]
-                }
-            ]
+                    borderDash: [3, 3],
+                },
+            ],
         },
         options: {
             responsive: false,
@@ -1362,17 +1409,17 @@ async function showPriceHistory(slug, itemName) {
                 y: {
                     title: { display: true, text: "Platinum", color: "#eee" },
                     ticks: { color: "#eee" },
-                    grid: { color: "#333" }
+                    grid: { color: "#333" },
                 },
                 x: {
                     ticks: { display: false },
-                    grid: { color: "#222" }
-                }
+                    grid: { color: "#222" },
+                },
             },
             plugins: {
-                legend: { labels: { color: "#eee" } }
-            }
-        }
+                legend: { labels: { color: "#eee" } },
+            },
+        },
     });
 
     const rawMax = Math.max(...volumeData) * 1.15;
@@ -1382,11 +1429,13 @@ async function showPriceHistory(slug, itemName) {
         type: "bar",
         data: {
             labels: labels,
-            datasets: [{
-                label: "Volume",
-                data: volumeData,
-                backgroundColor: "rgba(237, 160, 46, 0.6)"
-            }]
+            datasets: [
+                {
+                    label: "Volume",
+                    data: volumeData,
+                    backgroundColor: "rgba(237, 160, 46, 0.6)",
+                },
+            ],
         },
         options: {
             responsive: false,
@@ -1395,17 +1444,17 @@ async function showPriceHistory(slug, itemName) {
                     title: { display: true, text: "Volume", color: "#eee" },
                     ticks: { color: "#eee", stepSize: 50 },
                     grid: { color: "#333" },
-                    max: volumeMax
+                    max: volumeMax,
                 },
                 x: {
                     ticks: { color: "#eee", maxTicksLimit: 12 },
-                    grid: { color: "#222" }
-                }
+                    grid: { color: "#222" },
+                },
             },
             plugins: {
-                legend: { display: false }
-            }
-        }
+                legend: { display: false },
+            },
+        },
     });
 
     document.getElementById("priceHistoryModal").style.display = "block";
@@ -1435,17 +1484,17 @@ function sortBy(column) {
     inventory.sort((a, b) => {
         let valA, valB;
 
-        if (column === 'total') {
+        if (column === "total") {
             valA = a.price * a.quantity;
             valB = b.price * b.quantity;
-        } else if (column === 'vaulted') {
+        } else if (column === "vaulted") {
             valA = a.vaulted ? 1 : 0;
             valB = b.vaulted ? 1 : 0;
-        } else if (column === 'lastUpdated') {
+        } else if (column === "lastUpdated") {
             valA = a.lastUpdated;
             valB = b.lastUpdated;
-        } else if (column === 'rarity') {
-            const rarityRank = { "": -1, "Common": 0, "Uncommon": 1, "Rare": 2 };
+        } else if (column === "rarity") {
+            const rarityRank = { "": -1, Common: 0, Uncommon: 1, Rare: 2 };
             valA = rarityRank[getDisplayRarity(a)] ?? -1;
             valB = rarityRank[getDisplayRarity(b)] ?? -1;
         } else {
@@ -1489,7 +1538,8 @@ async function renderRecommendations(recommendations) {
     const container = document.getElementById("recommendationList");
 
     if (recommendations.length === 0) {
-        container.innerHTML = "<p>No recommendations yet — add relics or track sets to see suggestions.</p>";
+        container.innerHTML =
+            "<p>No recommendations yet — add relics or track sets to see suggestions.</p>";
         return;
     }
 
@@ -1505,7 +1555,7 @@ async function renderRecommendations(recommendations) {
 
         const sortedSets = Object.keys(bySet).sort();
         for (const setName of sortedSets) {
-            const trackedEntry = buildTracker.find(t => t.name === setName);
+            const trackedEntry = buildTracker.find((t) => t.name === setName);
             const setType = trackedEntry ? trackedEntry.type : "Warframe Part";
             const imageName = await window.api.getItemImage(setName, setType);
             const imageUrl = imageName ? `https://cdn.warframestat.us/img/${imageName}` : null;
@@ -1551,15 +1601,16 @@ async function renderRecommendations(recommendations) {
 let discoverHasRun = false;
 
 function setRecommendationTab(tab) {
-    document.getElementById("recommendationTabGaps").style.display = tab === "gaps" ? "block" : "none";
-    document.getElementById("recommendationTabDiscover").style.display = tab === "discover" ? "block" : "none";
+    document.getElementById("recommendationTabGaps").style.display =
+        tab === "gaps" ? "block" : "none";
+    document.getElementById("recommendationTabDiscover").style.display =
+        tab === "discover" ? "block" : "none";
 
     if (tab === "discover" && !discoverHasRun) {
         discoverHasRun = true;
         runDiscoverNewSets();
     }
 }
-
 
 // ------------------------------
 // BACKUP / RESTORE
@@ -1582,7 +1633,7 @@ async function exportBackupHandler() {
 async function importBackupHandler() {
     document.getElementById("settingsPanel").style.display = "none";
     const confirmed = await showConfirm(
-        "Importing a backup will overwrite your current inventory and build tracker data. This cannot be undone. Continue?"
+        "Importing a backup will overwrite your current inventory and build tracker data. This cannot be undone. Continue?",
     );
 
     if (!confirmed) return;
@@ -1611,7 +1662,7 @@ async function importBackupHandler() {
 async function restoreAutoBackupHandler() {
     document.getElementById("settingsPanel").style.display = "none";
     const confirmed = await showConfirm(
-        "This will restore your most recent auto-backup, overwriting your current inventory and build tracker. Continue?"
+        "This will restore your most recent auto-backup, overwriting your current inventory and build tracker. Continue?",
     );
 
     if (!confirmed) return;
@@ -1634,6 +1685,21 @@ async function restoreAutoBackupHandler() {
     await showAlert(`Restored auto-backup from ${backupDate}.`);
 }
 
+// Export as CSV
+
+async function exportCsvHandler() {
+    document.getElementById("settingsPanel").style.display = "none";
+    const result = await window.api.exportInventoryCsv();
+
+    if (!result.success) {
+        if (result.reason !== "Export cancelled.") {
+            await showAlert(result.reason);
+        }
+        return;
+    }
+
+    await showAlert(`CSV exported to:\n${result.path}`);
+}
 
 // ------------------------------
 // AUTOCOMPLETE (local only)
@@ -1647,7 +1713,7 @@ function showSuggestions(value) {
     }
 
     const v = value.toLowerCase();
-    const matches = allItems.filter(i => i.name.toLowerCase().includes(v)).slice(0, 10);
+    const matches = allItems.filter((i) => i.name.toLowerCase().includes(v)).slice(0, 10);
 
     if (matches.length === 0) {
         hideSuggestions();
@@ -1655,7 +1721,7 @@ function showSuggestions(value) {
     }
 
     box.innerHTML = matches
-        .map(m => {
+        .map((m) => {
             const safeName = m.name.replace(/'/g, "\\'");
             const safeSlug = m.slug.replace(/'/g, "\\'");
             return `<div onclick="pickSuggestion('${safeName}', '${safeSlug}')">${m.name}</div>`;
@@ -1676,7 +1742,6 @@ function hideSuggestions() {
     box.style.display = "none";
 }
 
-
 // ------------------------------
 // LOAD AUTOCOMPLETE LIST (Warframe Market & WFCD)
 // ------------------------------
@@ -1686,9 +1751,9 @@ function hideSuggestions() {
     try {
         const response = await fetch("https://api.warframe.market/v2/items");
         const json = await response.json();
-        allItems = json.data.map(i => ({
+        allItems = json.data.map((i) => ({
             name: i.i18n.en.name,
-            slug: i.slug
+            slug: i.slug,
         }));
     } catch (err) {
         console.log("Failed to load item list:", err.message);
@@ -1701,10 +1766,10 @@ function hideSuggestions() {
     try {
         const response = await fetch("https://api.warframestat.us/items?only=name,type,category");
         const json = await response.json();
-        wfcdItems = json.map(i => ({
+        wfcdItems = json.map((i) => ({
             name: i.name,
             type: i.type,
-            category: i.category
+            category: i.category,
         }));
     } catch (err) {
         console.log("Failed to load WFCD item list:", err.message);
@@ -1723,8 +1788,8 @@ let archwingRelatedNames = new Set();
 
         archwingRelatedNames = new Set(
             items
-                .filter(i => i.type && i.type.includes("Arch"))
-                .map(i => i.name.trim().toLowerCase())
+                .filter((i) => i.type && i.type.includes("Arch"))
+                .map((i) => i.name.trim().toLowerCase()),
         );
     } catch (err) {
         console.log("Failed to load archwing-related names:", err.message);
@@ -1735,7 +1800,6 @@ let archwingRelatedNames = new Set();
 function isArchwingRelated(itemName) {
     return archwingRelatedNames.has(itemName.trim().toLowerCase());
 }
-
 
 //--------------------------
 // PORTFOLIO SNAPSHOT
@@ -1751,10 +1815,10 @@ async function renderPortfolioChart() {
         return; // canvas just stays empty; could add a placeholder message if you prefer
     }
 
-    const labels = history.map(h => h.date);
-    const platValues = history.map(h => h.totalPlat);
-    const uniqueValues = history.map(h => h.totalUnique);
-    const itemValues = history.map(h => h.totalItems);
+    const labels = history.map((h) => h.date);
+    const platValues = history.map((h) => h.totalPlat);
+    const uniqueValues = history.map((h) => h.totalUnique);
+    const itemValues = history.map((h) => h.totalItems);
 
     const ctx = document.getElementById("portfolioChart").getContext("2d");
 
@@ -1772,7 +1836,7 @@ async function renderPortfolioChart() {
                     backgroundColor: "#2a6df4",
                     yAxisID: "y",
                     tension: 0.2,
-                    pointRadius: 3
+                    pointRadius: 3,
                 },
                 {
                     label: "Unique Items",
@@ -1782,7 +1846,7 @@ async function renderPortfolioChart() {
                     yAxisID: "y1",
                     tension: 0.2,
                     pointRadius: 3,
-                    borderDash: [4, 4]
+                    borderDash: [4, 4],
                 },
                 {
                     label: "Total Items",
@@ -1792,9 +1856,9 @@ async function renderPortfolioChart() {
                     yAxisID: "y1",
                     tension: 0.2,
                     pointRadius: 3,
-                    borderDash: [2, 2]
-                }
-            ]
+                    borderDash: [2, 2],
+                },
+            ],
         },
         options: {
             responsive: false,
@@ -1805,27 +1869,26 @@ async function renderPortfolioChart() {
                     position: "left",
                     title: { display: true, text: "Platinum", color: "#eee" },
                     ticks: { color: "#eee" },
-                    grid: { color: "#333" }
+                    grid: { color: "#333" },
                 },
                 y1: {
                     type: "linear",
                     position: "right",
                     title: { display: true, text: "Item Count", color: "#eee" },
                     ticks: { color: "#eee" },
-                    grid: { display: false }
+                    grid: { display: false },
                 },
                 x: {
                     ticks: { color: "#eee" },
-                    grid: { color: "#222" }
-                }
+                    grid: { color: "#222" },
+                },
             },
             plugins: {
-                legend: { labels: { color: "#eee" } }
-            }
-        }
+                legend: { labels: { color: "#eee" } },
+            },
+        },
     });
 }
-
 
 //--------------------------
 // DUCATS/PLAT LOGIC
@@ -1875,10 +1938,10 @@ function getDucatComparisonCell(item) {
 }
 
 function calculateAveragePlatPerDucat(inv) {
-    const validItems = inv.filter(i => i.ducats && i.ducats > 0 && i.price > 0);
+    const validItems = inv.filter((i) => i.ducats && i.ducats > 0 && i.price > 0);
     if (validItems.length === 0) return null;
 
-    const ratios = validItems.map(i => i.price / i.ducats);
+    const ratios = validItems.map((i) => i.price / i.ducats);
     const average = ratios.reduce((sum, r) => sum + r, 0) / ratios.length;
     return Math.round(average * 100) / 100;
 }
@@ -1889,7 +1952,7 @@ function calculateAveragePlatPerDucat(inv) {
 
 function filterPriceTable(query) {
     const q = query.trim().toLowerCase();
-    const filtered = q ? inventory.filter(i => i.name.toLowerCase().includes(q)) : inventory;
+    const filtered = q ? inventory.filter((i) => i.name.toLowerCase().includes(q)) : inventory;
     renderTable(filtered);
 }
 
@@ -1902,10 +1965,11 @@ function filterBuildTracker(query) {
 
 function filterRelicGrid(query) {
     const q = query.trim().toLowerCase();
-    const filtered = q ? relicInventory.filter(r => r.name.toLowerCase().includes(q)) : relicInventory;
+    const filtered = q
+        ? relicInventory.filter((r) => r.name.toLowerCase().includes(q))
+        : relicInventory;
     renderRelicGrid(filtered);
 }
-
 
 // ------------------------------
 // DISCOVER
@@ -1915,10 +1979,26 @@ let discoverIndex = [];
 
 function buildDiscoverIndex() {
     const warframeWeaponEntries = wfcdItems
-        .filter(i => ["Warframes", "Primary", "Secondary", "Melee", "Sentinels", "Archwing", "Arch-Gun", "Arch-Melee", "Mods"].includes(i.category))
-        .map(i => ({ name: i.name, category: i.category === "Mods" ? "mod" : "item", type: i.type }));
+        .filter((i) =>
+            [
+                "Warframes",
+                "Primary",
+                "Secondary",
+                "Melee",
+                "Sentinels",
+                "Archwing",
+                "Arch-Gun",
+                "Arch-Melee",
+                "Mods",
+            ].includes(i.category),
+        )
+        .map((i) => ({
+            name: i.name,
+            category: i.category === "Mods" ? "mod" : "item",
+            type: i.type,
+        }));
 
-    const relicEntries = relicNameList.map(name => ({ name, category: "relic", type: null }));
+    const relicEntries = relicNameList.map((name) => ({ name, category: "relic", type: null }));
 
     discoverIndex = [...warframeWeaponEntries, ...relicEntries];
 }
@@ -1930,7 +2010,7 @@ async function searchDiscover(query) {
         return;
     }
 
-    const matches = discoverIndex.filter(i => i.name.toLowerCase().includes(q)).slice(0, 300);
+    const matches = discoverIndex.filter((i) => i.name.toLowerCase().includes(q)).slice(0, 300);
     renderDiscoverSearchResults(matches);
 }
 
@@ -1942,10 +2022,12 @@ function renderDiscoverSearchResults(matches) {
         return;
     }
 
-    container.innerHTML = matches.map(m => {
-        const safeName = m.name.replace(/'/g, "\\'");
-        return `<div class="item-name" style="padding:8px;" onclick="openDiscoverResult('${safeName}', '${m.category}', '${m.type || ""}')">${m.name}</div>`;
-    }).join("");
+    container.innerHTML = matches
+        .map((m) => {
+            const safeName = m.name.replace(/'/g, "\\'");
+            return `<div class="item-name" style="padding:8px;" onclick="openDiscoverResult('${safeName}', '${m.category}', '${m.type || ""}')">${m.name}</div>`;
+        })
+        .join("");
 }
 
 async function openDiscoverResult(name, category, type) {

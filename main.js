@@ -4,7 +4,7 @@ const fs = require("fs");
 const axios = require("axios");
 const { autoUpdater } = require("electron-updater");
 
-app.setName("Warframe Inventory Tracker"); 
+app.setName("Warframe Inventory Tracker");
 
 let mainWindow;
 
@@ -109,7 +109,7 @@ async function fetchPriceHistory(slug) {
     const key = slug.trim().toLowerCase();
     const maxAge = 1000 * 60 * 60 * 12; // 12 hours — this data updates daily server-side, no need to refetch constantly
 
-    if (cache[key] && (Date.now() - cache[key].fetchedAt) < maxAge) {
+    if (cache[key] && Date.now() - cache[key].fetchedAt < maxAge) {
         return cache[key].history;
     }
 
@@ -119,28 +119,27 @@ async function fetchPriceHistory(slug) {
         const response = await axios.get(url, {
             headers: {
                 "User-Agent": "Mozilla/5.0",
-                "Accept": "application/json",
-                "Platform": "pc",
-                "Language": "en",
-                "Crossplay": "true",
-                "Referer": "https://warframe.market/" 
-            }
+                Accept: "application/json",
+                Platform: "pc",
+                Language: "en",
+                Crossplay: "true",
+                Referer: "https://warframe.market/",
+            },
         });
         const days90 = response.data?.payload?.statistics_closed?.["90days"] || [];
 
-        const history = days90.map(day => ({
+        const history = days90.map((day) => ({
             date: day.datetime,
             movingAvg: day.moving_avg,
             median: day.median,
             minPrice: day.min_price,
             maxPrice: day.max_price,
-            volume: day.volume
+            volume: day.volume,
         }));
 
         cache[key] = { history, fetchedAt: Date.now() };
         savePriceHistoryCache(cache);
         return history;
-
     } catch (err) {
         console.log("Price history fetch failed for", slug, err.message);
         return cache[key]?.history || [];
@@ -156,7 +155,7 @@ async function fetchWithRetry(url, retries = 1) {
         return await axios.get(url);
     } catch (err) {
         if (retries > 0) {
-            await new Promise(r => setTimeout(r, 1000)); // wait 1 second
+            await new Promise((r) => setTimeout(r, 1000)); // wait 1 second
             return fetchWithRetry(url, retries - 1);
         }
         throw err;
@@ -168,13 +167,15 @@ function summarizeDrops(drops) {
 
     for (const drop of drops) {
         // Strip "(Exceptional)", "(Flawless)", "(Radiant)" to get the base relic name
-        const baseRelicName = drop.location.replace(/\s*\((Intact|Exceptional|Flawless|Radiant)\)\s*$/i, "").trim();
+        const baseRelicName = drop.location
+            .replace(/\s*\((Intact|Exceptional|Flawless|Radiant)\)\s*$/i, "")
+            .trim();
 
         if (!bestByRelic[baseRelicName] || drop.chance > bestByRelic[baseRelicName].chance) {
             bestByRelic[baseRelicName] = {
                 relic: baseRelicName,
                 chance: drop.chance,
-                rarity: drop.rarity
+                rarity: drop.rarity,
             };
         }
     }
@@ -183,14 +184,12 @@ function summarizeDrops(drops) {
     return Object.values(bestByRelic).sort((a, b) => b.chance - a.chance);
 }
 
-    // Function for rarity based on drop rate
+// Function for rarity based on drop rate
 
 function median(numbers) {
     const sorted = [...numbers].sort((a, b) => a - b);
     const mid = Math.floor(sorted.length / 2);
-    return sorted.length % 2 !== 0
-        ? sorted[mid]
-        : (sorted[mid - 1] + sorted[mid]) / 2;
+    return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
 }
 
 function chanceToTier(chance) {
@@ -201,26 +200,26 @@ function chanceToTier(chance) {
 }
 
 function assignRarityTiers(components) {
-    return components.map(comp => {
+    return components.map((comp) => {
         const summarized = summarizeDrops(comp.drops || []);
-        const medianChance = summarized.length ? median(summarized.map(d => d.chance)) : null;
+        const medianChance = summarized.length ? median(summarized.map((d) => d.chance)) : null;
         return {
             name: comp.name,
             ducats: comp.ducats,
             tier: chanceToTier(medianChance),
             imageName: comp.imageName || null,
-            drops: summarized
+            drops: summarized,
         };
     });
 }
-    // Fetch farm data for mods
+// Fetch farm data for mods
 
 async function fetchModFarmData(modName) {
     const cache = loadFarmCache();
     const key = "mod:" + modName.trim().toLowerCase();
     const maxAge = 1000 * 60 * 60 * 24 * 14;
 
-    if (cache[key] && (Date.now() - cache[key].fetchedAt) < maxAge) {
+    if (cache[key] && Date.now() - cache[key].fetchedAt < maxAge) {
         return cache[key].drops;
     }
 
@@ -231,30 +230,41 @@ async function fetchModFarmData(modName) {
         const results = response.data;
 
         const exactMatches = results.filter(
-            r => r.name.trim().toLowerCase() === modName.trim().toLowerCase()
+            (r) => r.name.trim().toLowerCase() === modName.trim().toLowerCase(),
         );
         const matchesToUse = exactMatches.length > 0 ? exactMatches : results.slice(0, 1);
 
-        const allDrops = matchesToUse.flatMap(m => m.drops || []);
+        const allDrops = matchesToUse.flatMap((m) => m.drops || []);
         const drops = summarizeDrops(allDrops);
 
         cache[key] = { drops, fetchedAt: Date.now() };
         saveFarmCache(cache);
         return drops;
-
     } catch (err) {
         console.log("Mod farm data fetch failed for", modName, err.message);
         return cache[key]?.drops || [];
     }
 }
 
-    // This calls the farm data from the com dev api
+// This calls the farm data from the com dev api
 
 function getEndpointForType(itemType) {
     if (itemType.includes("Warframe")) return "warframes";
     if (itemType === "Mod") return "mods";
-    const weaponTypes = ["Weapon", "Rifle", "Pistol", "Melee", "Shotgun", "Sentinel", "Archwing", "Archgun", "Archmelee", "Secondary", "Primary"];
-    if (weaponTypes.some(t => itemType.includes(t))) return "weapons";
+    const weaponTypes = [
+        "Weapon",
+        "Rifle",
+        "Pistol",
+        "Melee",
+        "Shotgun",
+        "Sentinel",
+        "Archwing",
+        "Archgun",
+        "Archmelee",
+        "Secondary",
+        "Primary",
+    ];
+    if (weaponTypes.some((t) => itemType.includes(t))) return "weapons";
     return null;
 }
 
@@ -263,7 +273,7 @@ async function fetchFarmData(setName, itemType) {
     const key = setName.trim().toLowerCase();
     const maxAge = 1000 * 60 * 60 * 24 * 14; // 14 days
 
-    if (cache[key] && (Date.now() - cache[key].fetchedAt) < maxAge) {
+    if (cache[key] && Date.now() - cache[key].fetchedAt < maxAge) {
         return cache[key].components;
     }
 
@@ -279,29 +289,33 @@ async function fetchFarmData(setName, itemType) {
         const results = response.data;
 
         const exactMatch = results.find(
-            r => r.name.trim().toLowerCase() === setName.trim().toLowerCase()
+            (r) => r.name.trim().toLowerCase() === setName.trim().toLowerCase(),
         );
         const match = exactMatch || results[0];
         const rawComponents = match?.components || [];
         const components = assignRarityTiers(rawComponents);
 
-        cache[key] = { components, imageName: match?.imageName || null, vaulted: match?.vaulted || false, fetchedAt: Date.now() };
+        cache[key] = {
+            components,
+            imageName: match?.imageName || null,
+            vaulted: match?.vaulted || false,
+            fetchedAt: Date.now(),
+        };
         saveFarmCache(cache);
         return components;
-
     } catch (err) {
         console.log("Farm data fetch failed for", setName, err.message);
         return cache[key]?.components || [];
     }
 }
 
-    // This calls the mods
+// This calls the mods
 async function fetchModFarmData(modName) {
     const cache = loadFarmCache();
     const key = "mod:" + modName.trim().toLowerCase();
     const maxAge = 1000 * 60 * 60 * 24 * 14;
 
-    if (cache[key] && (Date.now() - cache[key].fetchedAt) < maxAge) {
+    if (cache[key] && Date.now() - cache[key].fetchedAt < maxAge) {
         return cache[key].drops;
     }
 
@@ -314,17 +328,16 @@ async function fetchModFarmData(modName) {
         // Mods can have multiple entries with the exact same name (mastery-rank drain tiers)
         // Combine drops across all exact matches rather than picking just one
         const exactMatches = results.filter(
-            r => r.name.trim().toLowerCase() === modName.trim().toLowerCase()
+            (r) => r.name.trim().toLowerCase() === modName.trim().toLowerCase(),
         );
         const matchesToUse = exactMatches.length > 0 ? exactMatches : results.slice(0, 1);
 
-        const allDrops = matchesToUse.flatMap(m => m.drops || []);
+        const allDrops = matchesToUse.flatMap((m) => m.drops || []);
         const drops = summarizeDrops(allDrops);
 
         cache[key] = { drops, fetchedAt: Date.now() };
         saveFarmCache(cache);
         return drops;
-
     } catch (err) {
         console.log("Mod farm data fetch failed for", modName, err.message);
         return cache[key]?.drops || [];
@@ -334,8 +347,20 @@ async function fetchModFarmData(modName) {
 // rarity helper
 async function resolveTierForItem(itemName, itemType, itemSet) {
     const isWarframeType = itemType.includes("Warframe");
-    const weaponTypes = ["Weapon", "Rifle", "Pistol", "Melee", "Shotgun", "Sentinel", "Archwing", "Archgun", "Archmelee", "Secondary", "Primary"];
-    const isWeaponType = weaponTypes.some(t => itemType.includes(t));
+    const weaponTypes = [
+        "Weapon",
+        "Rifle",
+        "Pistol",
+        "Melee",
+        "Shotgun",
+        "Sentinel",
+        "Archwing",
+        "Archgun",
+        "Archmelee",
+        "Secondary",
+        "Primary",
+    ];
+    const isWeaponType = weaponTypes.some((t) => itemType.includes(t));
 
     if (!isWarframeType && !isWeaponType) return null;
     if (itemName.trim().endsWith(" Set")) return null; // whole combined sets have no tier
@@ -344,7 +369,7 @@ async function resolveTierForItem(itemName, itemType, itemSet) {
     let shortName = itemName.replace(itemSet, "").trim();
     if (shortName === "") shortName = "Blueprint"; // name collapsed to just the set = this IS the Blueprint
 
-    const match = components.find(c => c.name === shortName);
+    const match = components.find((c) => c.name === shortName);
     return match?.tier || null;
 }
 
@@ -358,7 +383,6 @@ function loadInventory() {
 
         // Backfill ONLY missing fields — never overwrite API metadata
         for (const item of inventory) {
-
             if (!item.type) item.type = "Misc";
             if (!item.rarity) item.rarity = "Unknown";
             if (item.vaulted === undefined) item.vaulted = false;
@@ -373,7 +397,6 @@ function loadInventory() {
 
         saveInventory(inventory);
         return inventory;
-
     } catch {
         return [];
     }
@@ -403,7 +426,6 @@ async function backfillTiers() {
     return { success: true, updated, total: inventory.length };
 }
 
-
 // ------------------------------
 // Backup / Restore
 // ------------------------------
@@ -416,13 +438,13 @@ async function exportBackup() {
         appVersion: app.getVersion(),
         exportedAt: Date.now(),
         inventory,
-        buildTracker
+        buildTracker,
     };
 
     const result = await dialog.showSaveDialog(mainWindow, {
         title: "Export Backup",
         defaultPath: `warframe-tracker-backup-${new Date().toISOString().slice(0, 10)}.json`,
-        filters: [{ name: "JSON Backup", extensions: ["json"] }]
+        filters: [{ name: "JSON Backup", extensions: ["json"] }],
     });
 
     if (result.canceled) {
@@ -437,7 +459,7 @@ async function importBackup() {
     const result = await dialog.showOpenDialog(mainWindow, {
         title: "Import Backup",
         filters: [{ name: "JSON Backup", extensions: ["json"] }],
-        properties: ["openFile"]
+        properties: ["openFile"],
     });
 
     if (result.canceled || result.filePaths.length === 0) {
@@ -472,7 +494,7 @@ app.on("before-quit", (event) => {
             appVersion: app.getVersion(),
             exportedAt: Date.now(),
             inventory,
-            buildTracker
+            buildTracker,
         };
 
         const autoBackupPath = path.join(app.getPath("userData"), "auto-backup.json");
@@ -511,7 +533,7 @@ async function restoreAutoBackup() {
             success: true,
             inventory: backup.inventory,
             buildTracker: backup.buildTracker,
-            exportedAt: backup.exportedAt
+            exportedAt: backup.exportedAt,
         };
     } catch (err) {
         return { success: false, reason: "Couldn't read the auto-backup: " + err.message };
@@ -526,22 +548,22 @@ async function combineSetComponents(setName) {
     const components = await fetchFarmData(setName, "Warframe Part");
 
     // Only real trackable parts have ducats — filters out things like Orokin Cell
-    const requiredParts = components.filter(c => c.ducats !== undefined);
+    const requiredParts = components.filter((c) => c.ducats !== undefined);
 
     if (requiredParts.length === 0) {
         return { success: false, reason: "No trackable components found for this set." };
     }
 
     // For each required part, find the matching inventory item and its quantity
-    const partEntries = requiredParts.map(part => {
+    const partEntries = requiredParts.map((part) => {
         const fullName = `${setName} ${part.name}`;
         const key = normalizeName(fullName);
-        const invItem = inventory.find(i => normalizeName(i.name) === key);
+        const invItem = inventory.find((i) => normalizeName(i.name) === key);
         return { fullName, invItem, quantity: invItem ? invItem.quantity : 0 };
     });
 
     // How many complete sets can we build? Limited by the scarcest component.
-    const completeSets = Math.min(...partEntries.map(p => p.quantity));
+    const completeSets = Math.min(...partEntries.map((p) => p.quantity));
 
     if (completeSets < 1) {
         return { success: false, reason: "Not all components are owned yet." };
@@ -551,11 +573,11 @@ async function combineSetComponents(setName) {
     for (const part of partEntries) {
         part.invItem.quantity -= completeSets;
     }
-    inventory = inventory.filter(i => i.quantity > 0);
+    inventory = inventory.filter((i) => i.quantity > 0);
 
     // Find or create the merged set entry
     const setKey = normalizeName(setName + " Set");
-    let setEntry = inventory.find(i => normalizeName(i.name) === setKey);
+    let setEntry = inventory.find((i) => normalizeName(i.name) === setKey);
 
     // Resolve the set's own market slug for pricing
     const setSlug = setName.trim().toLowerCase().replace(/\s+/g, "_") + "_set";
@@ -572,7 +594,7 @@ async function combineSetComponents(setName) {
             rarity: "Unknown",
             vaulted: false,
             set: setName,
-            lastUpdated: Date.now()
+            lastUpdated: Date.now(),
         };
         inventory.push(setEntry);
     }
@@ -588,11 +610,11 @@ async function combineSetComponents(setName) {
 function createWindow() {
     mainWindow = new BrowserWindow({
         width: 1800,
-        height:1000,
+        height: 1000,
         webPreferences: {
-            preload: path.join(__dirname, "preload.js")
+            preload: path.join(__dirname, "preload.js"),
         },
-        title: "Warframe Inventory Tracker"
+        title: "Warframe Inventory Tracker",
     });
 
     mainWindow.loadFile("dashboard.html");
@@ -603,8 +625,8 @@ function normalizeName(name) {
     return name
         .trim()
         .toLowerCase()
-        .replace(/\s+blueprint$/i, "")   // strip trailing "blueprint", any casing
-        .replace(/\s+/g, " ");            // collapse multiple spaces into one
+        .replace(/\s+blueprint$/i, "") // strip trailing "blueprint", any casing
+        .replace(/\s+/g, " "); // collapse multiple spaces into one
 }
 
 // Fetch price from Warframe Market v2 orders endpoint
@@ -615,11 +637,11 @@ async function fetchPriceForSlug(slug) {
         const response = await axios.get(url, {
             headers: {
                 "User-Agent": "Mozilla/5.0",
-                "Accept": "application/json",
-                "Platform": "pc",
-                "Language": "en",
-                "Crossplay": "true"
-            }
+                Accept: "application/json",
+                Platform: "pc",
+                Language: "en",
+                Crossplay: "true",
+            },
         });
 
         const json = response.data;
@@ -629,7 +651,7 @@ async function fetchPriceForSlug(slug) {
         }
 
         const sellOrders = json.data.sell
-            .filter(o => o.visible)
+            .filter((o) => o.visible)
             .sort((a, b) => a.platinum - b.platinum);
 
         return sellOrders.length ? sellOrders[0].platinum : 0;
@@ -654,11 +676,11 @@ async function fetchItemDetails(slug) {
         const response = await axios.get(url, {
             headers: {
                 "User-Agent": "Mozilla/5.0",
-                "Accept": "application/json",
-                "Platform": "pc",
-                "Language": "en",
-                "Crossplay": "true"
-            }
+                Accept: "application/json",
+                Platform: "pc",
+                Language: "en",
+                Crossplay: "true",
+            },
         });
 
         const tags = response.data?.data?.tags || [];
@@ -668,7 +690,6 @@ async function fetchItemDetails(slug) {
         saveCache(cache);
 
         return tags;
-
     } catch (err) {
         console.log("Item details fetch failed for", slug, err.message);
         return [];
@@ -720,7 +741,6 @@ function saveBuildTracker(list) {
     fs.writeFileSync(buildTrackerPath, JSON.stringify(list, null, 2));
 }
 
-
 // ------------------------------
 // Relic Inventory storage
 // ------------------------------
@@ -753,7 +773,7 @@ function addRelic(name, imageName) {
     let relics = loadRelicInventory();
     const key = name.trim().toLowerCase();
 
-    let existing = relics.find(r => r.name.trim().toLowerCase() === key);
+    let existing = relics.find((r) => r.name.trim().toLowerCase() === key);
 
     if (existing) {
         existing.quantity += 1;
@@ -769,11 +789,11 @@ function updateRelicQuantity(name, newQuantity) {
     let relics = loadRelicInventory();
     const key = name.trim().toLowerCase();
 
-    const relic = relics.find(r => r.name.trim().toLowerCase() === key);
+    const relic = relics.find((r) => r.name.trim().toLowerCase() === key);
     if (relic) {
         relic.quantity = Math.max(0, Number(newQuantity));
         if (relic.quantity === 0) {
-            relics = relics.filter(r => r.name.trim().toLowerCase() !== key);
+            relics = relics.filter((r) => r.name.trim().toLowerCase() !== key);
         }
     }
 
@@ -783,7 +803,7 @@ function updateRelicQuantity(name, newQuantity) {
 
 function removeRelic(name) {
     let relics = loadRelicInventory();
-    relics = relics.filter(r => r.name.trim().toLowerCase() !== name.trim().toLowerCase());
+    relics = relics.filter((r) => r.name.trim().toLowerCase() !== name.trim().toLowerCase());
     saveRelicInventory(relics);
     return relics;
 }
@@ -792,7 +812,7 @@ function updateRelicImage(name, imageName) {
     let relics = loadRelicInventory();
     const key = name.trim().toLowerCase();
 
-    const relic = relics.find(r => r.name.trim().toLowerCase() === key);
+    const relic = relics.find((r) => r.name.trim().toLowerCase() === key);
     if (relic) {
         relic.imageName = imageName;
         saveRelicInventory(relics);
@@ -825,7 +845,7 @@ async function fetchRelicDropData(relicFullName) {
     const key = relicFullName.trim().toLowerCase();
     const maxAge = 1000 * 60 * 60 * 24 * 14; // 14 days — drop tables rarely change
 
-    if (cache[key] && (Date.now() - cache[key].fetchedAt) < maxAge) {
+    if (cache[key] && Date.now() - cache[key].fetchedAt < maxAge) {
         return cache[key].data;
     }
 
@@ -845,7 +865,6 @@ async function fetchRelicDropData(relicFullName) {
         cache[key] = { data, fetchedAt: Date.now() };
         saveRelicDropCache(cache);
         return data;
-
     } catch (err) {
         console.log("Relic drop data fetch failed for", relicFullName, err.message);
         return cache[key]?.data || null;
@@ -881,7 +900,7 @@ async function refreshAllRelicData() {
             if (!cache[key]) {
                 cache[key] = {
                     data: { tier: entry.tier, name: entry.relicName, rewards: {} },
-                    fetchedAt: Date.now()
+                    fetchedAt: Date.now(),
                 };
             }
             cache[key].data.rewards[entry.state] = entry.rewards;
@@ -889,7 +908,6 @@ async function refreshAllRelicData() {
 
         saveRelicDropCache(cache);
         return { success: true, count: Object.keys(cache).length, skipped };
-
     } catch (err) {
         return { success: false, reason: err.message };
     }
@@ -920,14 +938,20 @@ async function getRelicRecommendations() {
 
         for (const trackedSet of buildTracker) {
             const components = await fetchFarmData(trackedSet.name, trackedSet.type);
-            const requiredParts = components.filter(c => isTrackableComponentServer(c, trackedSet.type));
+            const requiredParts = components.filter((c) =>
+                isTrackableComponentServer(c, trackedSet.type),
+            );
 
             for (const part of requiredParts) {
                 const isPrime = part.ducats !== undefined;
                 const fullPartName = `${trackedSet.name} ${part.name}`;
 
                 const owned = isPrime
-                    ? inventory.some(i => normalizeName(i.name) === normalizeName(fullPartName) && i.quantity > 0)
+                    ? inventory.some(
+                          (i) =>
+                              normalizeName(i.name) === normalizeName(fullPartName) &&
+                              i.quantity > 0,
+                      )
                     : (trackedSet.obtainedParts || []).includes(part.name);
 
                 if (owned) continue;
@@ -935,8 +959,11 @@ async function getRelicRecommendations() {
                 const states = ["Intact", "Exceptional", "Flawless", "Radiant"];
                 for (const state of states) {
                     const rewards = dropData.rewards[state] || [];
-                    const match = rewards.find(r => {
-                        const normalized = r.itemName.trim().toLowerCase().replace(/\s+blueprint$/i, "");
+                    const match = rewards.find((r) => {
+                        const normalized = r.itemName
+                            .trim()
+                            .toLowerCase()
+                            .replace(/\s+blueprint$/i, "");
                         return normalized === fullPartName.trim().toLowerCase();
                     });
 
@@ -947,7 +974,7 @@ async function getRelicRecommendations() {
                             targetItem: fullPartName,
                             targetSet: trackedSet.name,
                             minRefinement: state,
-                            chance: match.chance
+                            chance: match.chance,
                         });
                         break;
                     }
@@ -958,7 +985,6 @@ async function getRelicRecommendations() {
 
     return recommendations;
 }
-
 
 // ------------------------------
 // Portfolio Value History
@@ -987,13 +1013,16 @@ function savePortfolioHistory(history) {
 
 function snapshotPortfolioValue() {
     const inventory = loadInventory();
-    const totalPlat = inventory.reduce((sum, item) => sum + (Number(item.price) * Number(item.quantity)), 0);
+    const totalPlat = inventory.reduce(
+        (sum, item) => sum + Number(item.price) * Number(item.quantity),
+        0,
+    );
     const totalUnique = inventory.length;
     const totalItems = inventory.reduce((sum, item) => sum + Number(item.quantity), 0);
     const today = new Date().toISOString().slice(0, 10);
 
     let history = loadPortfolioHistory();
-    const existingEntry = history.find(h => h.date === today);
+    const existingEntry = history.find((h) => h.date === today);
 
     if (existingEntry) {
         existingEntry.totalPlat = totalPlat;
@@ -1006,7 +1035,6 @@ function snapshotPortfolioValue() {
     savePortfolioHistory(history);
     return history;
 }
-
 
 // ------------------------------
 // App Settings
@@ -1044,7 +1072,7 @@ async function resolveDucatsForItem(itemName, itemType, itemSet) {
     let shortName = itemName.replace(itemSet, "").trim();
     if (shortName === "") shortName = "Blueprint";
 
-    const match = components.find(c => c.name === shortName);
+    const match = components.find((c) => c.name === shortName);
     return match?.ducats ?? null;
 }
 
@@ -1067,7 +1095,6 @@ async function backfillDucats() {
     return { success: true, updated, total: inventory.length };
 }
 
-
 //-------------------------------
 // CSV Export
 //-------------------------------
@@ -1075,9 +1102,21 @@ async function backfillDucats() {
 async function exportInventoryCsv() {
     const inventory = loadInventory();
 
-    const headers = ["Name", "Type", "Rarity", "Vaulted", "Set", "Quantity", "Price", "Total Value", "Ducats", "Tier", "Last Updated"];
+    const headers = [
+        "Name",
+        "Type",
+        "Rarity",
+        "Vaulted",
+        "Set",
+        "Quantity",
+        "Price",
+        "Total Value",
+        "Ducats",
+        "Tier",
+        "Last Updated",
+    ];
 
-    const rows = inventory.map(item => [
+    const rows = inventory.map((item) => [
         item.name,
         item.type,
         item.rarity,
@@ -1088,7 +1127,7 @@ async function exportInventoryCsv() {
         item.price * item.quantity,
         item.ducats ?? "",
         item.tier ?? "",
-        new Date(item.lastUpdated).toLocaleDateString()
+        new Date(item.lastUpdated).toLocaleDateString(),
     ]);
 
     // Escape fields containing commas, quotes, or newlines per CSV spec
@@ -1100,13 +1139,13 @@ async function exportInventoryCsv() {
         return str;
     }
 
-    const csvLines = [headers, ...rows].map(row => row.map(escapeCsvField).join(","));
+    const csvLines = [headers, ...rows].map((row) => row.map(escapeCsvField).join(","));
     const csvContent = csvLines.join("\n");
 
     const result = await dialog.showSaveDialog(mainWindow, {
         title: "Export Inventory to CSV",
         defaultPath: `warframe-inventory-${new Date().toISOString().slice(0, 10)}.csv`,
-        filters: [{ name: "CSV File", extensions: ["csv"] }]
+        filters: [{ name: "CSV File", extensions: ["csv"] }],
     });
 
     if (result.canceled) {
@@ -1117,25 +1156,9 @@ async function exportInventoryCsv() {
     return { success: true, path: result.filePath };
 }
 
-async function exportCsvHandler() {
-    document.getElementById("settingsPanel").style.display = "none";
-    const result = await window.api.exportInventoryCsv();
-
-    if (!result.success) {
-        if (result.reason !== "Export cancelled.") {
-            await showAlert(result.reason);
-        }
-        return;
-    }
-
-    await showAlert(`CSV exported to:\n${result.path}`);
-}
-
-
 // ------------------------------
 // IPC handlers
 // ------------------------------
-
 
 // CSV Export
 ipcMain.handle("inventory:exportCsv", async () => await exportInventoryCsv());
@@ -1193,8 +1216,8 @@ ipcMain.handle("inventory:add", async (event, { name, slug }) => {
 
     const tags = await fetchItemDetails(resolvedSlug);
 
-    let existing = inventory.find(i =>
-        i.slug.trim().toLowerCase() === resolvedSlug.trim().toLowerCase()
+    let existing = inventory.find(
+        (i) => i.slug.trim().toLowerCase() === resolvedSlug.trim().toLowerCase(),
     );
 
     const setName = (() => {
@@ -1233,7 +1256,7 @@ ipcMain.handle("inventory:add", async (event, { name, slug }) => {
             set: setName,
             tier: tier,
             ducats: ducats,
-            lastUpdated: Date.now()
+            lastUpdated: Date.now(),
         };
         inventory.push(existing);
     }
@@ -1248,12 +1271,12 @@ ipcMain.handle("inventory:add", async (event, { name, slug }) => {
     if (existing.type === "Warframe Part" || existing.type === "Weapon Part") {
         let tracker = loadBuildTracker();
         const trackerKey = normalizeName(existing.set);
-        const trackerExisting = tracker.find(i => normalizeName(i.name) === trackerKey);
+        const trackerExisting = tracker.find((i) => normalizeName(i.name) === trackerKey);
 
         if (!trackerExisting) {
             tracker.push({
                 name: existing.set,
-                type: existing.type
+                type: existing.type,
             });
             saveBuildTracker(tracker);
         }
@@ -1267,7 +1290,7 @@ ipcMain.handle("buildTracker:add", (event, { name, set, type, marketSlug, tradab
     let tracker = loadBuildTracker();
     const key = normalizeName(name);
 
-    const existing = tracker.find(i => normalizeName(i.name) === key);
+    const existing = tracker.find((i) => normalizeName(i.name) === key);
 
     if (!existing) {
         tracker.push({
@@ -1275,7 +1298,7 @@ ipcMain.handle("buildTracker:add", (event, { name, set, type, marketSlug, tradab
             set,
             type,
             marketSlug: marketSlug || null,
-            tradable: !!tradable
+            tradable: !!tradable,
         });
         saveBuildTracker(tracker);
     }
@@ -1287,7 +1310,7 @@ ipcMain.handle("buildTracker:checkPart", (event, { setName, partName }) => {
     let tracker = loadBuildTracker();
     const key = normalizeName(setName);
 
-    const entry = tracker.find(i => normalizeName(i.name) === key);
+    const entry = tracker.find((i) => normalizeName(i.name) === key);
 
     if (entry) {
         if (!entry.obtainedParts) {
@@ -1306,10 +1329,10 @@ ipcMain.handle("buildTracker:uncheckPart", (event, { setName, partName }) => {
     let tracker = loadBuildTracker();
     const key = normalizeName(setName);
 
-    const entry = tracker.find(i => normalizeName(i.name) === key);
+    const entry = tracker.find((i) => normalizeName(i.name) === key);
 
     if (entry && entry.obtainedParts) {
-        entry.obtainedParts = entry.obtainedParts.filter(p => p !== partName);
+        entry.obtainedParts = entry.obtainedParts.filter((p) => p !== partName);
         saveBuildTracker(tracker);
     }
 
@@ -1329,7 +1352,7 @@ ipcMain.handle("buildTracker:remove", (event, { name }) => {
     let tracker = loadBuildTracker();
     const key = normalizeName(name);
 
-    tracker = tracker.filter(i => normalizeName(i.name) !== key);
+    tracker = tracker.filter((i) => normalizeName(i.name) !== key);
     saveBuildTracker(tracker);
 
     return tracker;
@@ -1348,9 +1371,7 @@ ipcMain.handle("item:getFarmInfo", async (event, { set, type }) => {
 ipcMain.handle("inventory:updateQuantity", (event, { slug, newQuantity }) => {
     let inventory = loadInventory();
 
-    const item = inventory.find(i =>
-        i.slug.trim().toLowerCase() === slug.trim().toLowerCase()
-    );
+    const item = inventory.find((i) => i.slug.trim().toLowerCase() === slug.trim().toLowerCase());
 
     if (item) {
         item.quantity = Number(newQuantity);
@@ -1364,9 +1385,7 @@ ipcMain.handle("inventory:updateQuantity", (event, { slug, newQuantity }) => {
 ipcMain.handle("inventory:delete", (event, { slug }) => {
     let inventory = loadInventory();
 
-    inventory = inventory.filter(i =>
-        i.slug.trim().toLowerCase() !== slug.trim().toLowerCase()
-    );
+    inventory = inventory.filter((i) => i.slug.trim().toLowerCase() !== slug.trim().toLowerCase());
 
     saveInventory(inventory);
     return inventory;
@@ -1391,7 +1410,7 @@ ipcMain.handle("inventory:totals", () => {
 
     const uniqueCount = inventory.length;
     const totalPlat = inventory.reduce((sum, item) => {
-        return sum + (Number(item.price) * Number(item.quantity));
+        return sum + Number(item.price) * Number(item.quantity);
     }, 0);
 
     return { uniqueCount, totalPlat };
@@ -1400,7 +1419,9 @@ ipcMain.handle("inventory:totals", () => {
 // Relic handlers
 ipcMain.handle("relics:get", () => loadRelicInventory());
 ipcMain.handle("relics:add", (event, { name, imageName }) => addRelic(name, imageName));
-ipcMain.handle("relics:updateQuantity", (event, { name, newQuantity }) => updateRelicQuantity(name, newQuantity));
+ipcMain.handle("relics:updateQuantity", (event, { name, newQuantity }) =>
+    updateRelicQuantity(name, newQuantity),
+);
 ipcMain.handle("relics:remove", (event, { name }) => removeRelic(name));
 
 // Relic Data
@@ -1415,7 +1436,9 @@ ipcMain.handle("relics:refreshAllData", async () => await refreshAllRelicData())
 ipcMain.handle("relics:getRecommendations", async () => await getRelicRecommendations());
 
 // Relic Image handler
-ipcMain.handle("relics:updateImage", (event, { name, imageName }) => updateRelicImage(name, imageName));
+ipcMain.handle("relics:updateImage", (event, { name, imageName }) =>
+    updateRelicImage(name, imageName),
+);
 
 // App lifecycle
 app.whenReady().then(() => {
@@ -1439,16 +1462,18 @@ autoUpdater.on("update-available", (info) => {
 });
 
 autoUpdater.on("update-downloaded", (info) => {
-    dialog.showMessageBox(mainWindow, {
-        type: "info",
-        title: "Update Ready",
-        message: `Version ${info.version} has been downloaded. Restart now to install it?`,
-        buttons: ["Restart Now", "Later"]
-    }).then((result) => {
-        if (result.response === 0) {
-            autoUpdater.quitAndInstall();
-        }
-    });
+    dialog
+        .showMessageBox(mainWindow, {
+            type: "info",
+            title: "Update Ready",
+            message: `Version ${info.version} has been downloaded. Restart now to install it?`,
+            buttons: ["Restart Now", "Later"],
+        })
+        .then((result) => {
+            if (result.response === 0) {
+                autoUpdater.quitAndInstall();
+            }
+        });
 });
 
 autoUpdater.on("error", (err) => {

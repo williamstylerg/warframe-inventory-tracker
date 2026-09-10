@@ -1,762 +1,1070 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Warframe Inventory Tracker</title>
-
-    <style>
-        :root {
-            --spacing-sm: 8px;
-            --spacing-md: 16px;
-            --spacing-lg: 24px;
-            --spacing-xl: 32px;
-        }
-
-        .section-spacing {
-            margin-top: var(--spacing-xl);
-        }
-
-        .content {
-            flex-grow: 1;
-            padding: 0 var(--spacing-lg) var(--spacing-lg) var(--spacing-lg);
-            overflow-y: auto;
-        }
-
-        .app-layout {
-            display: flex;
-            height: 100vh;
-        }
-
-        .sidebar {
-            width: 200px;
-            background: #1a1a1a;
-            padding: 20px;
-            flex-shrink: 0;
-            border-right: 1px solid #333;
-        }
-
-        .sidebar h1 {
-            font-size: 1.2em;
-            margin-bottom: 20px;
-        }
-
-        .nav-btn {
-            display: block;
-            width: 100%;
-            text-align: left;
-            background: transparent;
-            margin: 4px 0;
-            padding: 10px;
-        }
-
-        .nav-btn:hover {
-            background: #2a2a2a;
-        }
-
-        .nav-btn.active {
-            background: #2a6df4;
-        }
-
-        .content {
-            flex-grow: 1;
-            padding: 20px;
-            overflow-y: auto;
-        }
-        body {
-            background: #111;
-            color: #eee;
-            font-family: Arial, sans-serif;
-            margin: 0;
-        }
-
-        h1 {
-            margin-bottom: 10px;
-        }
-
-        input, button {
-            padding: 8px;
-            margin: 5px;
-            border-radius: 4px;
-            border: none;
-        }
-
-        input {
-            width: 200px;
-        }
-
-        button {
-            background: #2a6df4;
-            color: white;
-            cursor: pointer;
-        }
-
-        button:hover {
-            background: #1e4db8;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-            background: #222;
-        }
-
-        th, td {
-            padding: 10px;
-            border-bottom: 1px solid #333;
-            text-align: left;
-        }
-
-        th {
-            cursor: pointer;
-            background: #333;
-        }
-
-        tr:hover {
-            background: #2a2a2a;
-        }
-
-        .row-set > td {
-            background-color: rgba(58, 110, 165, 0.22);
-        }
-        .row-set:hover > td {
-            background-color: rgba(58, 110, 165, 0.35);
-        }
-
-        .row-set > td {
-            background-color: rgba(58, 110, 165, 0.22);
-            border-top: 2px solid #ffffff;
-            border-bottom: 2px solid #ffffff;           
-        }
-        .row-set > td:first-child {
-            border-left: 2px solid #ffffff;
-        }
-        .row-set > td:last-child {
-            border-right: 2px solid #ffffff;
-        }
-        .row-set:hover > td {
-            background-color: rgba(58, 110, 165, 0.35);
-        }
-
-        .tier-bronze > td { background-color: rgba(139, 90, 43, 0.25); }
-        .tier-silver > td { background-color: rgba(140, 154, 168, 0.2); }
-        .tier-gold > td { background-color: rgba(234, 196, 53, 0.22); }
-
-        .tier-bronze:hover > td { background-color: rgba(139, 90, 43, 0.4); }
-        .tier-silver:hover > td { background-color: rgba(140, 154, 168, 0.35); }
-        .tier-gold:hover > td { background-color: rgba(234, 196, 53, 0.37); }
-
-        .mod-common > td { background-color: rgba(139, 90, 43, 0.25); }
-        .mod-uncommon > td { background-color: rgba(140, 154, 168, 0.2); }
-        .mod-rare > td { background-color: rgba(234, 196, 53, 0.22); }
-
-        .mod-common:hover > td { background-color: rgba(139, 90, 43, 0.4); }
-        .mod-uncommon:hover > td { background-color: rgba(140, 154, 168, 0.35); }
-        .mod-rare:hover > td { background-color: rgba(234, 196, 53, 0.37); }
-
-        .delete-btn {
-            background: #b82a2a;
-            color: white;
-            padding: 6px 10px;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        .delete-btn:hover {
-            background: #8e1f1f;
-        }
-
-        .qty-input {
-            width: 60px;
-            background: #333;
-            color: #eee;
-            border: 1px solid #444;
-            padding: 4px;
-            border-radius: 4px;
-        }
-
-        #suggestions {
-            background:#222;
-            border:1px solid #333;
-            display:none;
-            position:absolute;
-            width:200px;
-            z-index: 10;
-        }
-
-        #suggestions div {
-            padding:6px;
-            cursor:pointer;
-        }
-
-        #suggestions div:hover {
-            background:#444;
-        }
-
-        .build-tracker-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: var(--spacing-md);
-        }
-
-        .set-card {
-            position: relative;
-            background: #1e1e1e;
-            border: 1px solid #333;
-            border-radius: 8px;
-            padding: 16px;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .set-card-image {
-            width: 100%;
-            height: 140px;
-            object-fit: contain;
-            background: #111;
-            border-radius: 6px;
-            margin-bottom: 10px;
-        }
-
-        .set-card h3 {
-            margin: 0 0 10px 0;
-            cursor: pointer;
-        }
-
-        .set-card h3:hover {
-            color: #2a6df4;
-        }
-
-        .component-checklist {
-            list-style: none;
-            padding: 0;
-            margin: 0 0 10px 0;
-            flex-grow: 1;
-        }
-
-        .component-checklist li {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            justify-content: flex-start;
-        }
-
-        .component-checklist li .part-label {
-            min-width: 90px;
-            text-align: right;
-        }  
-
-        .item-name {
-            cursor: pointer;
-            color: inherit;
-        }
-
-        .item-name:hover {
-            color: #2a6df4;
-            font-weight: bold;
-            text-decoration: underline;
-        }
-
-        .content {
-            flex-grow: 1;
-            padding: 0 20px 20px 20px;
-            overflow-y: auto;
-        }
-
-        .view-header {
-            position: sticky;
-            top: 0;
-            background: #111;
-            z-index: 15;
-            padding-top: var(--spacing-lg);
-            padding-bottom: var(--spacing-md);
-            margin-bottom: var(--spacing-md);
-            margin-left: -24px;
-            margin-right: -24px;
-            padding-left: var(--spacing-lg);
-            padding-right: var(--spacing-lg);
-            border-bottom: 1px solid #333;
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .relic-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-            gap: 12px;
-        }
-
-        .relic-card {
-            background: #1e1e1e;
-            border: 1px solid #333;
-            border-radius: 8px;
-            padding: 10px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-        }
-
-        .relic-card-image {
-            width: 100%;
-            height: 80px;
-            object-fit: contain;
-            background: #111;
-            border-radius: 6px;
-            margin-bottom: 6px;
-        }
-
-        .relic-card h3 {
-            margin: 0 0 8px 0;
-            font-size: 0.9em;
-        }
-
-        .image-wrapper {
-            position: relative;
-            display: inline-block;
-            width: 100%;
-        }
-
-        .image-container {
-            position: relative;
-            width: 100%;
-        }
-
-        .archwing-badge {
-            position: absolute;
-            bottom: 17px;
-            right: 5px;
-            width: 45px;
-            height: 45px;
-            object-fit: contain;
-        }
-
-        #farmModal {
-            z-index: 9999;
-        }
-
-        #priceHistoryModal {
-            z-index: 9999;
-        }
-
-        #settingsPanel {
-            z-index: 9999;
-        }
-
-        #relicRewardsModal {
-            z-index: 9999;
-        }
-
-        .recommendation-set-group {
-            background: #1a1a1a;
-            border: 1px solid #333;
-            border-radius: 8px;
-            padding: 16px;
-            margin-bottom: 16px;
-        }
-
-        .settings-section {
-            margin-bottom: var(--spacing-xl);
-        }
-
-        .settings-section h3 {
-            font-size: 0.85em;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: #888;
-            margin-bottom: 12px;
-            padding-bottom: 6px;
-            border-bottom: 1px solid #333;
-        }
-
-        .settings-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 0;
-            border-bottom: 1px solid #2a2a2a;
-        }
-
-        .settings-row:last-child {
-            border-bottom: none;
-        }
-
-        .settings-row-label {
-            flex-grow: 1;
-            padding-right: 16px;
-        }
-
-        .settings-row-label strong {
-            display: block;
-            margin-bottom: 2px;
-        }
-
-        .settings-row-label span {
-            font-size: 0.8em;
-            color: #888;
-        }
-
-        .settings-btn {
-            background: #2a2a2a;
-            border: 1px solid #444;
-            color: #eee;
-            padding: 8px 14px;
-            border-radius: 6px;
-            white-space: nowrap;
-            cursor: pointer;
-        }
-
-        .settings-btn:hover {
-            background: #383838;
-        }
-
-        .settings-btn.danger-ish {
-            border-color: #6b3a3a;
-        }
-
-        .farm-component-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: var(--spacing-md);
-        }
-
-        .farm-component-box {
-            background: #1a1a1a;
-            border: 1px solid #333;
-            border-radius: 8px;
-            padding: 12px;
-        }
-
-        .farm-component-image {
-            width: 100%;
-            height: 80px;
-            object-fit: contain;
-            background: #111;
-            border-radius: 6px;
-            margin-bottom: 8px;
-        }
-
-        .farm-component-drops {
-            max-height: 220px;
-            overflow-y: auto;
-            padding-left: 20px;
-            margin: 8px 0 0 0;
-        }
-
-        .spinner {
-            display: inline-block;
-            width: 16px;
-            height: 16px;
-            border: 3px solid #444;
-            border-top-color: #2a6df4;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            margin-right: 8px;
-            vertical-align: middle;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        #discoverSearchResults {
-            max-height: 500px;
-            overflow-y: auto;
-        }
-
-        .autocomplete-suggestions {
-            background: #222;
-            border: 1px solid #333;
+    <head>
+        <meta charset="UTF-8" />
+        <title>Warframe Inventory Tracker</title>
+
+        <style>
+            :root {
+                --spacing-sm: 8px;
+                --spacing-md: 16px;
+                --spacing-lg: 24px;
+                --spacing-xl: 32px;
+            }
+
+            .section-spacing {
+                margin-top: var(--spacing-xl);
+            }
+
+            .content {
+                flex-grow: 1;
+                padding: 0 var(--spacing-lg) var(--spacing-lg) var(--spacing-lg);
+                overflow-y: auto;
+            }
+
+            .app-layout {
+                display: flex;
+                height: 100vh;
+            }
+
+            .sidebar {
+                width: 200px;
+                background: #1a1a1a;
+                padding: 20px;
+                flex-shrink: 0;
+                border-right: 1px solid #333;
+            }
+
+            .sidebar h1 {
+                font-size: 1.2em;
+                margin-bottom: 20px;
+            }
+
+            .nav-btn {
+                display: block;
+                width: 100%;
+                text-align: left;
+                background: transparent;
+                margin: 4px 0;
+                padding: 10px;
+            }
+
+            .nav-btn:hover {
+                background: #2a2a2a;
+            }
+
+            .nav-btn.active {
+                background: #2a6df4;
+            }
+
+            .content {
+                flex-grow: 1;
+                padding: 20px;
+                overflow-y: auto;
+            }
+            body {
+                background: #111;
+                color: #eee;
+                font-family: Arial, sans-serif;
+                margin: 0;
+            }
+
+            h1 {
+                margin-bottom: 10px;
+            }
+
+            input,
+            button {
+                padding: 8px;
+                margin: 5px;
+                border-radius: 4px;
+                border: none;
+            }
+
+            input {
+                width: 200px;
+            }
+
+            button {
+                background: #2a6df4;
+                color: white;
+                cursor: pointer;
+            }
+
+            button:hover {
+                background: #1e4db8;
+            }
+
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 20px;
+                background: #222;
+            }
+
+            th,
+            td {
+                padding: 10px;
+                border-bottom: 1px solid #333;
+                text-align: left;
+            }
+
+            th {
+                cursor: pointer;
+                background: #333;
+            }
+
+            tr:hover {
+                background: #2a2a2a;
+            }
+
+            .row-set > td {
+                background-color: rgba(58, 110, 165, 0.22);
+            }
+            .row-set:hover > td {
+                background-color: rgba(58, 110, 165, 0.35);
+            }
+
+            .row-set > td {
+                background-color: rgba(58, 110, 165, 0.22);
+                border-top: 2px solid #ffffff;
+                border-bottom: 2px solid #ffffff;
+            }
+            .row-set > td:first-child {
+                border-left: 2px solid #ffffff;
+            }
+            .row-set > td:last-child {
+                border-right: 2px solid #ffffff;
+            }
+            .row-set:hover > td {
+                background-color: rgba(58, 110, 165, 0.35);
+            }
+
+            .tier-bronze > td {
+                background-color: rgba(139, 90, 43, 0.25);
+            }
+            .tier-silver > td {
+                background-color: rgba(140, 154, 168, 0.2);
+            }
+            .tier-gold > td {
+                background-color: rgba(234, 196, 53, 0.22);
+            }
+
+            .tier-bronze:hover > td {
+                background-color: rgba(139, 90, 43, 0.4);
+            }
+            .tier-silver:hover > td {
+                background-color: rgba(140, 154, 168, 0.35);
+            }
+            .tier-gold:hover > td {
+                background-color: rgba(234, 196, 53, 0.37);
+            }
+
+            .mod-common > td {
+                background-color: rgba(139, 90, 43, 0.25);
+            }
+            .mod-uncommon > td {
+                background-color: rgba(140, 154, 168, 0.2);
+            }
+            .mod-rare > td {
+                background-color: rgba(234, 196, 53, 0.22);
+            }
+
+            .mod-common:hover > td {
+                background-color: rgba(139, 90, 43, 0.4);
+            }
+            .mod-uncommon:hover > td {
+                background-color: rgba(140, 154, 168, 0.35);
+            }
+            .mod-rare:hover > td {
+                background-color: rgba(234, 196, 53, 0.37);
+            }
+
+            .delete-btn {
+                background: #b82a2a;
+                color: white;
+                padding: 6px 10px;
+                border-radius: 4px;
+                cursor: pointer;
+            }
+
+            .delete-btn:hover {
+                background: #8e1f1f;
+            }
+
+            .qty-input {
+                width: 60px;
+                background: #333;
+                color: #eee;
+                border: 1px solid #444;
+                padding: 4px;
+                border-radius: 4px;
+            }
+
+            #suggestions {
+                background: #222;
+                border: 1px solid #333;
+                display: none;
+                position: absolute;
+                width: 200px;
+                z-index: 10;
+            }
+
+            #suggestions div {
+                padding: 6px;
+                cursor: pointer;
+            }
+
+            #suggestions div:hover {
+                background: #444;
+            }
+
+            .build-tracker-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+                gap: var(--spacing-md);
+            }
+
+            .set-card {
+                position: relative;
+                background: #1e1e1e;
+                border: 1px solid #333;
+                border-radius: 8px;
+                padding: 16px;
+                display: flex;
+                flex-direction: column;
+            }
+
+            .set-card-image {
+                width: 100%;
+                height: 140px;
+                object-fit: contain;
+                background: #111;
+                border-radius: 6px;
+                margin-bottom: 10px;
+            }
+
+            .set-card h3 {
+                margin: 0 0 10px 0;
+                cursor: pointer;
+            }
+
+            .set-card h3:hover {
+                color: #2a6df4;
+            }
+
+            .component-checklist {
+                list-style: none;
+                padding: 0;
+                margin: 0 0 10px 0;
+                flex-grow: 1;
+            }
+
+            .component-checklist li {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                justify-content: flex-start;
+            }
+
+            .component-checklist li .part-label {
+                min-width: 90px;
+                text-align: right;
+            }
+
+            .item-name {
+                cursor: pointer;
+                color: inherit;
+            }
+
+            .item-name:hover {
+                color: #2a6df4;
+                font-weight: bold;
+                text-decoration: underline;
+            }
+
+            .content {
+                flex-grow: 1;
+                padding: 0 20px 20px 20px;
+                overflow-y: auto;
+            }
+
+            .view-header {
+                position: sticky;
+                top: 0;
+                background: #111;
+                z-index: 15;
+                padding-top: var(--spacing-lg);
+                padding-bottom: var(--spacing-md);
+                margin-bottom: var(--spacing-md);
+                margin-left: -24px;
+                margin-right: -24px;
+                padding-left: var(--spacing-lg);
+                padding-right: var(--spacing-lg);
+                border-bottom: 1px solid #333;
+                display: flex;
+                flex-wrap: wrap;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .relic-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+                gap: 12px;
+            }
+
+            .relic-card {
+                background: #1e1e1e;
+                border: 1px solid #333;
+                border-radius: 8px;
+                padding: 10px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+
+            .relic-card-image {
+                width: 100%;
+                height: 80px;
+                object-fit: contain;
+                background: #111;
+                border-radius: 6px;
+                margin-bottom: 6px;
+            }
+
+            .relic-card h3 {
+                margin: 0 0 8px 0;
+                font-size: 0.9em;
+            }
+
+            .image-wrapper {
+                position: relative;
+                display: inline-block;
+                width: 100%;
+            }
+
+            .image-container {
+                position: relative;
+                width: 100%;
+            }
+
+            .archwing-badge {
+                position: absolute;
+                bottom: 17px;
+                right: 5px;
+                width: 45px;
+                height: 45px;
+                object-fit: contain;
+            }
+
+            #farmModal {
+                z-index: 9999;
+            }
+
+            #priceHistoryModal {
+                z-index: 9999;
+            }
+
+            #settingsPanel {
+                z-index: 9999;
+            }
+
+            #relicRewardsModal {
+                z-index: 9999;
+            }
+
+            .recommendation-set-group {
+                background: #1a1a1a;
+                border: 1px solid #333;
+                border-radius: 8px;
+                padding: 16px;
+                margin-bottom: 16px;
+            }
+
+            .settings-section {
+                margin-bottom: var(--spacing-xl);
+            }
+
+            .settings-section h3 {
+                font-size: 0.85em;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                color: #888;
+                margin-bottom: 12px;
+                padding-bottom: 6px;
+                border-bottom: 1px solid #333;
+            }
+
+            .settings-row {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 10px 0;
+                border-bottom: 1px solid #2a2a2a;
+            }
+
+            .settings-row:last-child {
+                border-bottom: none;
+            }
+
+            .settings-row-label {
+                flex-grow: 1;
+                padding-right: 16px;
+            }
+
+            .settings-row-label strong {
+                display: block;
+                margin-bottom: 2px;
+            }
+
+            .settings-row-label span {
+                font-size: 0.8em;
+                color: #888;
+            }
+
+            .settings-btn {
+                background: #2a2a2a;
+                border: 1px solid #444;
+                color: #eee;
+                padding: 8px 14px;
+                border-radius: 6px;
+                white-space: nowrap;
+                cursor: pointer;
+            }
+
+            .settings-btn:hover {
+                background: #383838;
+            }
+
+            .settings-btn.danger-ish {
+                border-color: #6b3a3a;
+            }
+
+            .farm-component-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+                gap: var(--spacing-md);
+            }
+
+            .farm-component-box {
+                background: #1a1a1a;
+                border: 1px solid #333;
+                border-radius: 8px;
+                padding: 12px;
+            }
+
+            .farm-component-image {
+                width: 100%;
+                height: 80px;
+                object-fit: contain;
+                background: #111;
+                border-radius: 6px;
+                margin-bottom: 8px;
+            }
+
+            .farm-component-drops {
+                max-height: 220px;
+                overflow-y: auto;
+                padding-left: 20px;
+                margin: 8px 0 0 0;
+            }
+
+            .spinner {
+                display: inline-block;
+                width: 16px;
+                height: 16px;
+                border: 3px solid #444;
+                border-top-color: #2a6df4;
+                border-radius: 50%;
+                animation: spin 0.8s linear infinite;
+                margin-right: 8px;
+                vertical-align: middle;
+            }
+
+            @keyframes spin {
+                to {
+                    transform: rotate(360deg);
+                }
+            }
+
+            #discoverSearchResults {
+                max-height: 500px;
+                overflow-y: auto;
+            }
+
+            .autocomplete-suggestions {
+                background: #222;
+                border: 1px solid #333;
+                display: none;
+                position: absolute;
+                width: 200px;
+                max-height: 250px;
+                overflow-y: auto;
+                z-index: 10;
+            }
+
+            .autocomplete-suggestions div {
+                padding: 6px;
+                cursor: pointer;
+            }
+
+            .autocomplete-suggestions div:hover {
+                background: #444;
+            }
+        </style>
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    </head>
+
+    <div
+        id="farmModal"
+        style="
             display: none;
-            position: absolute;
-            width: 200px;
-            max-height: 250px;
-            overflow-y: auto;
-            z-index: 10;
-        }
-
-        .autocomplete-suggestions div {
-            padding: 6px;
-            cursor: pointer;
-        }
-
-        .autocomplete-suggestions div:hover {
-            background: #444;
-        }
-    </style>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script> 
-</head>
-
-<div id="farmModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7);">
-    <div style="background:#222; max-width:800px; margin:60px auto; padding:20px; border-radius:6px; max-height:80vh; overflow-y:auto;">
-        <button onclick="closeFarmModal()" style="float:right;">Close</button>
-        <div id="farmModalBody"></div>
-    </div>
-</div>
-
-<div id="priceHistoryModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:100;">
-    <div style="background:#222; max-width:700px; margin:40px auto; padding:20px; border-radius:6px; max-height:85vh; overflow-y:auto;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-            <h2 id="priceHistoryTitle" style="margin:0;"></h2>
-            <button onclick="closePriceHistoryModal()">Close</button>
-        </div>
-        <canvas id="priceHistoryChart" width="650" height="300"></canvas>
-        <canvas id="volumeChart" width="650" height="100" style="margin-top:4px;"></canvas>
-    </div>
-</div>
-
-<body>
-
-    <div class="app-layout">
-        <nav class="sidebar" style="display:flex; flex-direction:column;">
-            <h1>Warframe Tracker</h1>
-            <p id="appVersionDisplay" style="font-size:0.75em; color:#666; margin:-8px 0 12px 0;">v...</p>
-                <button class="nav-btn active" data-view="price" onclick="switchView('price')">Price Tracker</button>
-                <button class="nav-btn" data-view="build" onclick="switchView('build')">Build Tracker</button>
-                <button class="nav-btn" data-view="relics" onclick="switchView('relics')">Relics</button>
-                <button id="recommendationsNavBtn" class="nav-btn" data-view="recommendations" onclick="switchView('recommendations')" style="display:none; padding-left:28px; font-size:0.9em;">↳ Recommendations</button>
-                <button class="nav-btn" data-view="portfolio" onclick="switchView('portfolio')">Portfolio History</button>
-                <button class="nav-btn" data-view="discover" onclick="switchView('discover')">Discover</button>
-            <div style="margin-top:auto;">
-                <button class="nav-btn" onclick="toggleSettingsPanel()" style="text-align:left;">⚙ Settings</button>
-            </div>
-        </nav>
-
-        <main class="content">
-
-            <div id="view-price" class="view">
-                <div class="view-header">
-                    <h2>Price Tracker</h2>
-                    <div style="position:relative; display:inline-block;">
-                        <input id="itemName" placeholder="Item Name" oninput="showSuggestions(this.value)">
-                        <div id="suggestions" class="autocomplete-suggestions"></div>
-                    </div>
-                    <input id="itemSlug" type="hidden">
-                    <button onclick="addItem()">Add Item</button>
-                    <button onclick="updatePrices()">Update Prices</button>
-
-                    <div id="summaryBox" style="margin-top: 8px; font-size: 1.1em;">
-                        <div><strong>Total Unique Items:</strong> <span id="totalUnique">0</span></div>
-                        <div><strong>Total Platinum Value:</strong> <span id="totalPlat">0</span></div>
-                    </div>
-                    <input id="priceSearchInput" placeholder="Search inventory..." oninput="filterPriceTable(this.value)" style="width:200px; margin-left:auto;">
-                </div>
-
-                <table id="inventoryTable"></table>
-            </div>
-
-            <div id="view-build" class="view" style="display:none;">
-                <div class="view-header" style="position:relative;">
-                    <h2>Build Tracker</h2>
-                    <div style="position:relative; display:inline-block;">
-                        <input id="buildTrackerName" placeholder="Item Name" oninput="showBuildTrackerSuggestions(this.value)" style="width:200px;">
-                        <div id="buildTrackerSuggestions" class="autocomplete-suggestions"></div>
-                    </div>
-                    <button onclick="addItemToBuildTracker()">Add to Build Tracker</button>
-                    <button onclick="toggleBuildTrackerFilterMenu()">Filters ▾</button>
-
-                    <div id="buildTrackerFilterMenu" style="display:none; position:absolute; background:#222; border:1px solid #333; border-radius:6px; padding:12px; z-index:20; margin-top:4px;">
-                        <div style="margin-bottom:8px;">
-                            <strong style="font-size:0.85em; color:#888;">Type</strong><br>
-                            <button onclick="setBuildTrackerFilter('all')">All</button>
-                            <button onclick="setBuildTrackerFilter('warframe')">Warframes</button>
-                            <button onclick="setBuildTrackerFilter('weapon')">Weapons</button>
-                        </div>
-                        <div>
-                            <strong style="font-size:0.85em; color:#888;">Rarity</strong><br>
-                            <button onclick="setBuildTrackerPrimeFilter('all')">Any</button>
-                            <button onclick="setBuildTrackerPrimeFilter('prime')">Prime Only</button>
-                            <button onclick="setBuildTrackerPrimeFilter('nonprime')">Non-Prime Only</button>
-                        </div>
-                    </div>
-
-                    <input id="buildTrackerSearchInput" placeholder="Search sets..." oninput="filterBuildTracker(this.value)" style="width:200px; margin-left:auto;">
-                </div>
-
-                <div id="almostCompleteDigest"></div>
-                <table id="buildTrackerTable" style="margin-top: 10px;"></table>
-            </div>
-
-            <div id="view-relics" class="view" style="display:none;">
-                <div class="view-header">
-                    <h2>Relic Inventory</h2>
-                    <div style="position:relative; display:inline-block;">
-                        <input id="relicSearchName" placeholder="Relic Name (e.g. Meso N2)" oninput="showRelicSuggestions(this.value)" onkeydown="handleRelicSearchKeydown(event)">
-                        <div id="relicSuggestions" class="autocomplete-suggestions"></div>
-                    </div>
-                    <button onclick="addRelicHandler()">Add Relic</button>
-                    <button onclick="toggleRecommendationGrouping()">Toggle Grouping</button>
-                    <button onclick="loadRecommendations()">Get Recommendations</button>
-                    <input id="relicSearchFilterInput" placeholder="Search owned relics..." oninput="filterRelicGrid(this.value)" style="width:200px; margin-left:auto;">
-                </div>
-
-                <div id="relicGrid" class="relic-grid" style="margin-top:16px;"></div>
-
-            </div>
-
-            <div id="view-recommendations" class="view" style="display:none;">
-                <div class="view-header" style="display:flex; justify-content:space-between; align-items:center;">
-                    <h2 style="margin:0;">Recommendations</h2>
-                    <div>
-                        <button onclick="setRecommendationTab('gaps')">Tracked Set Gaps</button>
-                        <button onclick="setRecommendationTab('discover')">Discover New Sets</button>
-                    </div>
-                </div>
-
-                <div id="recommendationTabGaps">
-                    <div style="margin:12px 0;">
-                        <button onclick="toggleRecommendationGrouping()">Toggle Grouping</button>
-                        <button onclick="loadRecommendations()">Refresh</button>
-                    </div>
-                    <div id="recommendationList"></div>
-                </div>
-
-                <div id="recommendationTabDiscover" style="display:none;">
-                        <div style="margin-bottom:12px;">
-                            <button onclick="setDiscoverFilter('all')">All</button>
-                            <button onclick="setDiscoverFilter('warframe')">Warframes</button>
-                            <button onclick="setDiscoverFilter('weapon')">Weapons</button>
-                        </div>
-                    <div id="discoverList"></div>
-                </div>
-            </div>
-
-            <div id="view-portfolio" class="view" style="display:none;">
-                <div class="view-header">
-                    <h2>Portfolio History</h2>
-                </div>
-                <canvas id="portfolioChart" width="900" height="350"></canvas>
-            </div>
-
-            <div id="customDialogModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:9999;">
-                <div style="background:#222; max-width:400px; margin:120px auto; padding:24px; border-radius:8px; text-align:center;">
-                    <p id="customDialogMessage" style="margin:0 0 20px 0; white-space:pre-wrap; color:#eee;"></p>
-                    <div id="customDialogButtons" style="display:flex; gap:8px; justify-content:center;"></div>
-                </div>
-            </div>
-
-            <div id="view-discover" class="view" style="display:none;">
-                <div class="view-header">
-                    <h2>Discover</h2>
-                    <input id="discoverSearchInput" placeholder="Search any Warframe, weapon, mod, or relic..." oninput="searchDiscover(this.value)" style="width:400px;">
-                </div>
-                <div id="discoverSearchResults"></div>
-            </div>
-
-        </main>
-    </div>
-
-    <div id="farmModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:100;">
-        <div style="background:#222; max-width:500px; margin:60px auto; padding:20px; border-radius:6px; max-height:80vh; overflow-y:auto;">
-            <button onclick="closeFarmModal()" style="float:right;">Close</button>
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+        "
+    >
+        <div
+            style="
+                background: #222;
+                max-width: 800px;
+                margin: 60px auto;
+                padding: 20px;
+                border-radius: 6px;
+                max-height: 80vh;
+                overflow-y: auto;
+            "
+        >
+            <button onclick="closeFarmModal()" style="float: right">Close</button>
             <div id="farmModalBody"></div>
         </div>
     </div>
 
-    <div id="relicRewardsModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:100;">
-        <div style="background:#222; max-width:500px; margin:60px auto; padding:20px; border-radius:6px; max-height:80vh; overflow-y:auto;">
-            <button onclick="closeRelicRewardsModal()" style="float:right;">Close</button>
-            <div id="relicRewardsBody"></div>
+    <div
+        id="priceHistoryModal"
+        style="
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 100;
+        "
+    >
+        <div
+            style="
+                background: #222;
+                max-width: 700px;
+                margin: 40px auto;
+                padding: 20px;
+                border-radius: 6px;
+                max-height: 85vh;
+                overflow-y: auto;
+            "
+        >
+            <div
+                style="
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 16px;
+                "
+            >
+                <h2 id="priceHistoryTitle" style="margin: 0"></h2>
+                <button onclick="closePriceHistoryModal()">Close</button>
+            </div>
+            <canvas id="priceHistoryChart" width="650" height="300"></canvas>
+            <canvas id="volumeChart" width="650" height="100" style="margin-top: 4px"></canvas>
         </div>
-    </div> 
+    </div>
 
-    <div id="settingsPanel" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999;">
-        <div style="background:#222; max-width:520px; margin:60px auto; padding:24px; border-radius:8px; max-height:80vh; overflow-y:auto;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
-                <h2 style="margin:0;">Settings</h2>
-                <button class="settings-btn" onclick="toggleSettingsPanel()">Close</button>
+    <body>
+        <div class="app-layout">
+            <nav class="sidebar" style="display: flex; flex-direction: column">
+                <h1>Warframe Tracker</h1>
+                <p
+                    id="appVersionDisplay"
+                    style="font-size: 0.75em; color: #666; margin: -8px 0 12px 0"
+                >
+                    v...
+                </p>
+                <button class="nav-btn active" data-view="price" onclick="switchView('price')">
+                    Price Tracker
+                </button>
+                <button class="nav-btn" data-view="build" onclick="switchView('build')">
+                    Build Tracker
+                </button>
+                <button class="nav-btn" data-view="relics" onclick="switchView('relics')">
+                    Relics
+                </button>
+                <button
+                    id="recommendationsNavBtn"
+                    class="nav-btn"
+                    data-view="recommendations"
+                    onclick="switchView('recommendations')"
+                    style="display: none; padding-left: 28px; font-size: 0.9em"
+                >
+                    ↳ Recommendations
+                </button>
+                <button class="nav-btn" data-view="portfolio" onclick="switchView('portfolio')">
+                    Portfolio History
+                </button>
+                <button class="nav-btn" data-view="discover" onclick="switchView('discover')">
+                    Discover
+                </button>
+                <div style="margin-top: auto">
+                    <button
+                        class="nav-btn"
+                        onclick="toggleSettingsPanel()"
+                        style="text-align: left"
+                    >
+                        ⚙ Settings
+                    </button>
+                </div>
+            </nav>
+
+            <main class="content">
+                <div id="view-price" class="view">
+                    <div class="view-header">
+                        <h2>Price Tracker</h2>
+                        <div style="position: relative; display: inline-block">
+                            <input
+                                id="itemName"
+                                placeholder="Item Name"
+                                oninput="showSuggestions(this.value)"
+                            />
+                            <div id="suggestions" class="autocomplete-suggestions"></div>
+                        </div>
+                        <input id="itemSlug" type="hidden" />
+                        <button onclick="addItem()">Add Item</button>
+                        <button onclick="updatePrices()">Update Prices</button>
+
+                        <div id="summaryBox" style="margin-top: 8px; font-size: 1.1em">
+                            <div>
+                                <strong>Total Unique Items:</strong> <span id="totalUnique">0</span>
+                            </div>
+                            <div>
+                                <strong>Total Platinum Value:</strong> <span id="totalPlat">0</span>
+                            </div>
+                        </div>
+                        <input
+                            id="priceSearchInput"
+                            placeholder="Search inventory..."
+                            oninput="filterPriceTable(this.value)"
+                            style="width: 200px; margin-left: auto"
+                        />
+                    </div>
+
+                    <table id="inventoryTable"></table>
+                </div>
+
+                <div id="view-build" class="view" style="display: none">
+                    <div class="view-header" style="position: relative">
+                        <h2>Build Tracker</h2>
+                        <div style="position: relative; display: inline-block">
+                            <input
+                                id="buildTrackerName"
+                                placeholder="Item Name"
+                                oninput="showBuildTrackerSuggestions(this.value)"
+                                style="width: 200px"
+                            />
+                            <div
+                                id="buildTrackerSuggestions"
+                                class="autocomplete-suggestions"
+                            ></div>
+                        </div>
+                        <button onclick="addItemToBuildTracker()">Add to Build Tracker</button>
+                        <button onclick="toggleBuildTrackerFilterMenu()">Filters ▾</button>
+
+                        <div
+                            id="buildTrackerFilterMenu"
+                            style="
+                                display: none;
+                                position: absolute;
+                                background: #222;
+                                border: 1px solid #333;
+                                border-radius: 6px;
+                                padding: 12px;
+                                z-index: 20;
+                                margin-top: 4px;
+                            "
+                        >
+                            <div style="margin-bottom: 8px">
+                                <strong style="font-size: 0.85em; color: #888">Type</strong><br />
+                                <button onclick="setBuildTrackerFilter('all')">All</button>
+                                <button onclick="setBuildTrackerFilter('warframe')">
+                                    Warframes
+                                </button>
+                                <button onclick="setBuildTrackerFilter('weapon')">Weapons</button>
+                            </div>
+                            <div>
+                                <strong style="font-size: 0.85em; color: #888">Rarity</strong><br />
+                                <button onclick="setBuildTrackerPrimeFilter('all')">Any</button>
+                                <button onclick="setBuildTrackerPrimeFilter('prime')">
+                                    Prime Only
+                                </button>
+                                <button onclick="setBuildTrackerPrimeFilter('nonprime')">
+                                    Non-Prime Only
+                                </button>
+                            </div>
+                        </div>
+
+                        <input
+                            id="buildTrackerSearchInput"
+                            placeholder="Search sets..."
+                            oninput="filterBuildTracker(this.value)"
+                            style="width: 200px; margin-left: auto"
+                        />
+                    </div>
+
+                    <div id="almostCompleteDigest"></div>
+                    <table id="buildTrackerTable" style="margin-top: 10px"></table>
+                </div>
+
+                <div id="view-relics" class="view" style="display: none">
+                    <div class="view-header">
+                        <h2>Relic Inventory</h2>
+                        <div style="position: relative; display: inline-block">
+                            <input
+                                id="relicSearchName"
+                                placeholder="Relic Name (e.g. Meso N2)"
+                                oninput="showRelicSuggestions(this.value)"
+                                onkeydown="handleRelicSearchKeydown(event)"
+                            />
+                            <div id="relicSuggestions" class="autocomplete-suggestions"></div>
+                        </div>
+                        <button onclick="addRelicHandler()">Add Relic</button>
+                        <button onclick="toggleRecommendationGrouping()">Toggle Grouping</button>
+                        <button onclick="loadRecommendations()">Get Recommendations</button>
+                        <input
+                            id="relicSearchFilterInput"
+                            placeholder="Search owned relics..."
+                            oninput="filterRelicGrid(this.value)"
+                            style="width: 200px; margin-left: auto"
+                        />
+                    </div>
+
+                    <div id="relicGrid" class="relic-grid" style="margin-top: 16px"></div>
+                </div>
+
+                <div id="view-recommendations" class="view" style="display: none">
+                    <div
+                        class="view-header"
+                        style="display: flex; justify-content: space-between; align-items: center"
+                    >
+                        <h2 style="margin: 0">Recommendations</h2>
+                        <div>
+                            <button onclick="setRecommendationTab('gaps')">Tracked Set Gaps</button>
+                            <button onclick="setRecommendationTab('discover')">
+                                Discover New Sets
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="recommendationTabGaps">
+                        <div style="margin: 12px 0">
+                            <button onclick="toggleRecommendationGrouping()">
+                                Toggle Grouping
+                            </button>
+                            <button onclick="loadRecommendations()">Refresh</button>
+                        </div>
+                        <div id="recommendationList"></div>
+                    </div>
+
+                    <div id="recommendationTabDiscover" style="display: none">
+                        <div style="margin-bottom: 12px">
+                            <button onclick="setDiscoverFilter('all')">All</button>
+                            <button onclick="setDiscoverFilter('warframe')">Warframes</button>
+                            <button onclick="setDiscoverFilter('weapon')">Weapons</button>
+                        </div>
+                        <div id="discoverList"></div>
+                    </div>
+                </div>
+
+                <div id="view-portfolio" class="view" style="display: none">
+                    <div class="view-header">
+                        <h2>Portfolio History</h2>
+                    </div>
+                    <canvas id="portfolioChart" width="900" height="350"></canvas>
+                </div>
+
+                <div
+                    id="customDialogModal"
+                    style="
+                        display: none;
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 100%;
+                        background: rgba(0, 0, 0, 0.75);
+                        z-index: 9999;
+                    "
+                >
+                    <div
+                        style="
+                            background: #222;
+                            max-width: 400px;
+                            margin: 120px auto;
+                            padding: 24px;
+                            border-radius: 8px;
+                            text-align: center;
+                        "
+                    >
+                        <p
+                            id="customDialogMessage"
+                            style="margin: 0 0 20px 0; white-space: pre-wrap; color: #eee"
+                        ></p>
+                        <div
+                            id="customDialogButtons"
+                            style="display: flex; gap: 8px; justify-content: center"
+                        ></div>
+                    </div>
+                </div>
+
+                <div id="view-discover" class="view" style="display: none">
+                    <div class="view-header">
+                        <h2>Discover</h2>
+                        <input
+                            id="discoverSearchInput"
+                            placeholder="Search any Warframe, weapon, mod, or relic..."
+                            oninput="searchDiscover(this.value)"
+                            style="width: 400px"
+                        />
+                    </div>
+                    <div id="discoverSearchResults"></div>
+                </div>
+            </main>
+        </div>
+
+        <div
+            id="farmModal"
+            style="
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.7);
+                z-index: 100;
+            "
+        >
+            <div
+                style="
+                    background: #222;
+                    max-width: 500px;
+                    margin: 60px auto;
+                    padding: 20px;
+                    border-radius: 6px;
+                    max-height: 80vh;
+                    overflow-y: auto;
+                "
+            >
+                <button onclick="closeFarmModal()" style="float: right">Close</button>
+                <div id="farmModalBody"></div>
             </div>
+        </div>
 
-            <div class="settings-section">
-                <h3>Data Management</h3>
-
-                <div class="settings-row">
-                    <div class="settings-row-label">
-                        <strong>Backup</strong>
-                        <span>Save your inventory and build tracker to a file, or load one back in</span>
-                    </div>
-                    <div style="display:flex; gap:8px;">
-                        <button class="settings-btn" onclick="exportBackupHandler()">Export</button>
-                        <button class="settings-btn" onclick="importBackupHandler()">Import</button>                      
-                    </div>
-                </div>
-
-                <div class="settings-row">
-                    <div class="settings-row-label">
-                        <strong>CSV Export</strong>
-                        <span>Export your inventory to a spreadsheet-friendly file</span>
-                    </div>
-                    <button class="settings-btn" onclick="exportCsvHandler()">Export</button>
-                </div>
-
-                <div class="settings-row">
-                    <div class="settings-row-label">
-                        <strong>Auto-Backup</strong>
-                        <span>Restore the snapshot taken automatically when you last closed the app</span>
-                    </div>
-                    <button class="settings-btn danger-ish" onclick="restoreAutoBackupHandler()">Restore</button>
-                </div>
-
-                <div class="settings-row">
-                    <div class="settings-row-label">
-                        <strong>Rarity Tiers</strong>
-                        <span>Recompute gold/silver/bronze tiers for all tracked items</span>
-                    </div>
-                    <button class="settings-btn" onclick="backfillTiersHandler()">Recompute</button>
-                </div>
-
-                <div class="settings-row">
-                    <div class="settings-row-label">
-                        <strong>Relic Images</strong>
-                        <span>Backfill tier icons for relics added before this feature existed</span>
-                    </div>
-                    <button class="settings-btn" onclick="backfillRelicImagesHandler()">Backfill</button>
-                </div>
-
-                <div class="settings-row">
-                    <div class="settings-row-label">
-                        <strong>Ducats</strong>
-                        <span>Backfill Ducats added before this feature existed</span>
-                    </div>
-                    <button class="settings-btn" onclick="backfillDucatsHandler()">Backfill</button>
-                </div>
-
-                <div class="settings-row">
-                    <div class="settings-row-label">
-                        <strong>Plat per Ducat</strong>
-                        <span>Used to compare selling for platinum vs. trading for ducats. <span id="platPerDucatSuggestion"></span></span>
-                    </div>
-                    <input id="platPerDucatInput" type="number" min="1" style="width:60px;" onchange="updatePlatPerDucat(this.value)">
-                </div>
-
+        <div
+            id="relicRewardsModal"
+            style="
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.7);
+                z-index: 100;
+            "
+        >
+            <div
+                style="
+                    background: #222;
+                    max-width: 500px;
+                    margin: 60px auto;
+                    padding: 20px;
+                    border-radius: 6px;
+                    max-height: 80vh;
+                    overflow-y: auto;
+                "
+            >
+                <button onclick="closeRelicRewardsModal()" style="float: right">Close</button>
+                <div id="relicRewardsBody"></div>
             </div>
+        </div>
 
-            <div class="settings-section">
-                <h3>Advanced</h3>
-
-                <div class="settings-row">
-                    <div class="settings-row-label">
-                        <strong>Farm Data Cache</strong>
-                        <span>Clear if an item unexpectedly shows no drop data — usually a stale result</span>
-                    </div>
-                    <button class="settings-btn" onclick="clearFarmCacheHandler()">Clear</button>
+        <div
+            id="settingsPanel"
+            style="
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.85);
+                z-index: 9999;
+            "
+        >
+            <div
+                style="
+                    background: #222;
+                    max-width: 520px;
+                    margin: 60px auto;
+                    padding: 24px;
+                    border-radius: 8px;
+                    max-height: 80vh;
+                    overflow-y: auto;
+                "
+            >
+                <div
+                    style="
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        margin-bottom: 24px;
+                    "
+                >
+                    <h2 style="margin: 0">Settings</h2>
+                    <button class="settings-btn" onclick="toggleSettingsPanel()">Close</button>
                 </div>
 
-                <div class="settings-row">
-                    <div class="settings-row-label">
-                        <strong>Relic Drop Data</strong>
-                        <span>Refetch the entire relic drop table — can take a moment</span>
+                <div class="settings-section">
+                    <h3>Data Management</h3>
+
+                    <div class="settings-row">
+                        <div class="settings-row-label">
+                            <strong>Backup</strong>
+                            <span
+                                >Save your inventory and build tracker to a file, or load one back
+                                in</span
+                            >
+                        </div>
+                        <div style="display: flex; gap: 8px">
+                            <button class="settings-btn" onclick="exportBackupHandler()">
+                                Export
+                            </button>
+                            <button class="settings-btn" onclick="importBackupHandler()">
+                                Import
+                            </button>
+                        </div>
                     </div>
-                    <button class="settings-btn" onclick="refreshAllRelicDataHandler()">Update</button>
+
+                    <div class="settings-row">
+                        <div class="settings-row-label">
+                            <strong>CSV Export</strong>
+                            <span>Export your inventory to a spreadsheet-friendly file</span>
+                        </div>
+                        <button class="settings-btn" onclick="exportCsvHandler()">Export</button>
+                    </div>
+
+                    <div class="settings-row">
+                        <div class="settings-row-label">
+                            <strong>Auto-Backup</strong>
+                            <span
+                                >Restore the snapshot taken automatically when you last closed the
+                                app</span
+                            >
+                        </div>
+                        <button
+                            class="settings-btn danger-ish"
+                            onclick="restoreAutoBackupHandler()"
+                        >
+                            Restore
+                        </button>
+                    </div>
+
+                    <div class="settings-row">
+                        <div class="settings-row-label">
+                            <strong>Rarity Tiers</strong>
+                            <span>Recompute gold/silver/bronze tiers for all tracked items</span>
+                        </div>
+                        <button class="settings-btn" onclick="backfillTiersHandler()">
+                            Recompute
+                        </button>
+                    </div>
+
+                    <div class="settings-row">
+                        <div class="settings-row-label">
+                            <strong>Relic Images</strong>
+                            <span
+                                >Backfill tier icons for relics added before this feature
+                                existed</span
+                            >
+                        </div>
+                        <button class="settings-btn" onclick="backfillRelicImagesHandler()">
+                            Backfill
+                        </button>
+                    </div>
+
+                    <div class="settings-row">
+                        <div class="settings-row-label">
+                            <strong>Ducats</strong>
+                            <span>Backfill Ducats added before this feature existed</span>
+                        </div>
+                        <button class="settings-btn" onclick="backfillDucatsHandler()">
+                            Backfill
+                        </button>
+                    </div>
+
+                    <div class="settings-row">
+                        <div class="settings-row-label">
+                            <strong>Plat per Ducat</strong>
+                            <span
+                                >Used to compare selling for platinum vs. trading for ducats.
+                                <span id="platPerDucatSuggestion"></span
+                            ></span>
+                        </div>
+                        <input
+                            id="platPerDucatInput"
+                            type="number"
+                            min="1"
+                            style="width: 60px"
+                            onchange="updatePlatPerDucat(this.value)"
+                        />
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3>Advanced</h3>
+
+                    <div class="settings-row">
+                        <div class="settings-row-label">
+                            <strong>Farm Data Cache</strong>
+                            <span
+                                >Clear if an item unexpectedly shows no drop data — usually a stale
+                                result</span
+                            >
+                        </div>
+                        <button class="settings-btn" onclick="clearFarmCacheHandler()">
+                            Clear
+                        </button>
+                    </div>
+
+                    <div class="settings-row">
+                        <div class="settings-row-label">
+                            <strong>Relic Drop Data</strong>
+                            <span>Refetch the entire relic drop table — can take a moment</span>
+                        </div>
+                        <button class="settings-btn" onclick="refreshAllRelicDataHandler()">
+                            Update
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
-    </div> 
 
-    <!-- Electron renderer script -->
-    <script src="dashboard.js"></script>
-</body>
+        <!-- Electron renderer script -->
+        <script src="dashboard.js"></script>
+    </body>
 </html>
