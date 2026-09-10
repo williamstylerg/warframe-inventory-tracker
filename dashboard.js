@@ -1034,7 +1034,7 @@ function showRelicSuggestions(value) {
     }
 
     const v = value.toLowerCase();
-    currentRelicSuggestions = relicNameList.filter(name => name.toLowerCase().includes(v)).slice(0, 10);
+    currentRelicSuggestions = relicNameList.filter(name => name.toLowerCase().includes(v)).slice(0, 100);
 
     if (currentRelicSuggestions.length === 0) {
         box.style.display = "none";

@@ -465,6 +465,26 @@
             max-height: 500px;
             overflow-y: auto;
         }
+
+        .autocomplete-suggestions {
+            background: #222;
+            border: 1px solid #333;
+            display: none;
+            position: absolute;
+            width: 200px;
+            max-height: 250px;
+            overflow-y: auto;
+            z-index: 10;
+        }
+
+        .autocomplete-suggestions div {
+            padding: 6px;
+            cursor: pointer;
+        }
+
+        .autocomplete-suggestions div:hover {
+            background: #444;
+        }
     </style>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script> 
@@ -510,8 +530,10 @@
             <div id="view-price" class="view">
                 <div class="view-header">
                     <h2>Price Tracker</h2>
-                    <input id="itemName" placeholder="Item Name" oninput="showSuggestions(this.value)">
-                    <div id="suggestions"></div>
+                    <div style="position:relative; display:inline-block;">
+                        <input id="itemName" placeholder="Item Name" oninput="showSuggestions(this.value)">
+                        <div id="suggestions" class="autocomplete-suggestions"></div>
+                    </div>
                     <input id="itemSlug" type="hidden">
                     <button onclick="addItem()">Add Item</button>
                     <button onclick="updatePrices()">Update Prices</button>
@@ -529,8 +551,10 @@
             <div id="view-build" class="view" style="display:none;">
                 <div class="view-header" style="position:relative;">
                     <h2>Build Tracker</h2>
-                    <input id="buildTrackerName" placeholder="Item Name" oninput="showBuildTrackerSuggestions(this.value)" style="width:200px;">
-                    <div id="buildTrackerSuggestions" ...></div>
+                    <div style="position:relative; display:inline-block;">
+                        <input id="buildTrackerName" placeholder="Item Name" oninput="showBuildTrackerSuggestions(this.value)" style="width:200px;">
+                        <div id="buildTrackerSuggestions" class="autocomplete-suggestions"></div>
+                    </div>
                     <button onclick="addItemToBuildTracker()">Add to Build Tracker</button>
                     <button onclick="toggleBuildTrackerFilterMenu()">Filters ▾</button>
 
@@ -559,8 +583,10 @@
             <div id="view-relics" class="view" style="display:none;">
                 <div class="view-header">
                     <h2>Relic Inventory</h2>
-                    <input id="relicSearchName" placeholder="Relic Name (e.g. Meso N2)" oninput="showRelicSuggestions(this.value)" onkeydown="handleRelicSearchKeydown(event)">
-                    <div id="relicSuggestions" style="background:#222; border:1px solid #333; display:none; position:absolute; width:200px; z-index: 10;"></div>
+                    <div style="position:relative; display:inline-block;">
+                        <input id="relicSearchName" placeholder="Relic Name (e.g. Meso N2)" oninput="showRelicSuggestions(this.value)" onkeydown="handleRelicSearchKeydown(event)">
+                        <div id="relicSuggestions" class="autocomplete-suggestions"></div>
+                    </div>
                     <button onclick="addRelicHandler()">Add Relic</button>
                     <button onclick="toggleRecommendationGrouping()">Toggle Grouping</button>
                     <button onclick="loadRecommendations()">Get Recommendations</button>
