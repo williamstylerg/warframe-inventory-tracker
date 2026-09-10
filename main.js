@@ -559,15 +559,6 @@ function createWindow() {
     mainWindow.loadFile("dashboard.html");
 }
 
-// Normalize item names (remove " Blueprint")
-function normalizeName(name) {
-    return name
-        .trim()
-        .toLowerCase()
-        .replace(/\s+blueprint$/i, "") // strip trailing "blueprint", any casing
-        .replace(/\s+/g, " "); // collapse multiple spaces into one
-}
-
 // Fetch price from Warframe Market v2 orders endpoint
 async function fetchPriceForSlug(slug) {
     try {
