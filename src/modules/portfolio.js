@@ -5,7 +5,6 @@ let portfolioChartInstance = null;
 
 export async function renderPortfolioChart() {
     const history = await window.api.getPortfolioHistory();
-    const container = document.getElementById("view-portfolio");
 
     if (history.length === 0) {
         return; // canvas just stays empty; could add a placeholder message if you prefer

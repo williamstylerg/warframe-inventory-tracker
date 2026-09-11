@@ -1,10 +1,10 @@
 module.exports = [
     {
+        files: ["main.js", "preload.js"],
         languageOptions: {
             ecmaVersion: "latest",
             sourceType: "script",
             globals: {
-                // Node/Electron main process globals
                 require: "readonly",
                 module: "readonly",
                 process: "readonly",
@@ -13,17 +13,29 @@ module.exports = [
                 setTimeout: "readonly",
                 setInterval: "readonly",
                 clearTimeout: "readonly",
-                // Browser/renderer globals
+            },
+        },
+        rules: {
+            "no-unused-vars": "warn",
+            "no-undef": "error",
+        },
+    },
+    {
+        files: ["src/**/*.js"],
+        languageOptions: {
+            ecmaVersion: "latest",
+            sourceType: "module",
+            globals: {
                 window: "readonly",
                 document: "readonly",
                 fetch: "readonly",
                 Chart: "readonly",
-                localStorage: "readonly"
-            }
+                console: "readonly",
+            },
         },
         rules: {
-            "no-unused-vars": ["warn", { "varsIgnorePattern": "^" }],
-            "no-undef": "error"
-        }
-    }
+            "no-unused-vars": "warn",
+            "no-undef": "error",
+        },
+    },
 ];

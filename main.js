@@ -5,8 +5,6 @@ const axios = require("axios");
 const { autoUpdater } = require("electron-updater");
 
 const {
-    median,
-    chanceToTier,
     summarizeDrops,
     assignRarityTiers,
     normalizeName,

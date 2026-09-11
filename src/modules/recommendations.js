@@ -1,5 +1,5 @@
 import {
-    buildTracker, relicInventory, wfcdItems, inventory,
+    buildTracker, relicInventory, wfcdItems,
     recommendationGroupMode, setRecommendationGroupMode, currentRecommendations, setCurrentRecommendations,
     lastDiscoveryResults, setLastDiscoveryResults, discoverFilter, setDiscoverFilterState,
     discoverHasRun, setDiscoverHasRun,

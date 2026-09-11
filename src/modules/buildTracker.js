@@ -6,7 +6,6 @@ import {
     selectedBuildTrackerItem, setSelectedBuildTrackerItem, setInventory
 } from "./state.js";
 import { isTrackableComponent, normalizeNameClient, isArchwingRelated } from "./shared.js";
-import { showFarmInfo } from "./modals.js";
 import { renderTable, refreshTotals } from "./priceTracker.js";
 
 export function normalizeWfcdType(wfcdType, wfcdCategory) {

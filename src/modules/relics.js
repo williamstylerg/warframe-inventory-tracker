@@ -2,7 +2,6 @@
 
 import { relicInventory, setRelicInventory, relicNameList, setRelicNameList } from "./state.js";
 import { normalizeRelicName, getRelicImageName, sortRelics } from "./relicLogic.js";
-import { showRelicRewards } from "./modals.js";
 
 export async function refreshRelics() {
     setRelicInventory(await window.api.getRelics());

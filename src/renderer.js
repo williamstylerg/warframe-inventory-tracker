@@ -1,7 +1,7 @@
 // src/renderer.js
 import {
-    inventory, setInventory, buildTracker, setBuildTracker,
-    setAllItems, setWfcdItems, setArchwingRelatedNames, setRelicNameList,
+    inventory, setInventory, setAllItems, 
+    setWfcdItems, setArchwingRelatedNames,
 } from "./modules/state.js";
 import * as priceTracker from "./modules/priceTracker.js";
 import * as buildTrackerMod from "./modules/buildTracker.js";

@@ -10,8 +10,8 @@
     "build": "npm run build:renderer && electron-builder -w",
     "release": "npm run build:renderer && electron-builder -w --publish always",
     "build:renderer": "esbuild src/renderer.js --bundle --outfile=dashboard-bundle.js",
-    "lint": "eslint main.js preload.js dashboard.js",
-    "format": "prettier --write main.js preload.js dashboard.js *.html",
+    "lint": "eslint main.js preload.js src/",
+    "format": "prettier --write main.js preload.js src/ *.html",
     "test": "jest"
     
   },

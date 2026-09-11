@@ -12,7 +12,6 @@ import {
     allItems,
 } from "./state.js";
 import { getRowClass, getDisplayType, getDisplayRarity } from "./shared.js";
-import { showFarmInfo, showPriceHistory } from "./modals.js";
 import { showAlert } from "./settings.js";
 import { renderBuildTracker } from "./buildTracker.js";
 
