@@ -55,7 +55,39 @@ export async function updatePlatPerDucat(value) {
     renderTable(inventory);
 }
 
+function applySorting(rows) {
+    rows.sort((a, b) => {
+        let valA, valB;
+
+        if (sortColumn === "total") {
+            valA = a.price * a.quantity;
+            valB = b.price * b.quantity;
+        } else if (sortColumn === "vaulted") {
+            valA = a.vaulted ? 1 : 0;
+            valB = b.vaulted ? 1 : 0;
+        } else if (sortColumn === "lastUpdated") {
+            valA = a.lastUpdated;
+            valB = b.lastUpdated;
+        } else if (sortColumn === "rarity") {
+            const rarityRank = { "": -1, Common: 0, Uncommon: 1, Rare: 2 };
+            valA = rarityRank[getDisplayRarity(a)] ?? -1;
+            valB = rarityRank[getDisplayRarity(b)] ?? -1;
+        } else {
+            valA = a[sortColumn];
+            valB = b[sortColumn];
+        }
+
+        if (valA < valB) return sortAsc ? -1 : 1;
+        if (valA > valB) return sortAsc ? 1 : -1;
+        return 0;
+    });
+}
+
 export function renderTable(rows) {
+    if (sortColumn) {
+        applySorting(rows);
+    }
+
     const table = document.getElementById("inventoryTable");
 
     let html = `
@@ -169,32 +201,6 @@ export function sortBy(column) {
         setSortColumn(column);
         setSortAsc(true);
     }
-
-    inventory.sort((a, b) => {
-        let valA, valB;
-
-        if (column === "total") {
-            valA = a.price * a.quantity;
-            valB = b.price * b.quantity;
-        } else if (column === "vaulted") {
-            valA = a.vaulted ? 1 : 0;
-            valB = b.vaulted ? 1 : 0;
-        } else if (column === "lastUpdated") {
-            valA = a.lastUpdated;
-            valB = b.lastUpdated;
-        } else if (column === "rarity") {
-            const rarityRank = { "": -1, Common: 0, Uncommon: 1, Rare: 2 };
-            valA = rarityRank[getDisplayRarity(a)] ?? -1;
-            valB = rarityRank[getDisplayRarity(b)] ?? -1;
-        } else {
-            valA = a[column];
-            valB = b[column];
-        }
-
-        if (valA < valB) return sortAsc ? -1 : 1;
-        if (valA > valB) return sortAsc ? 1 : -1;
-        return 0;
-    });
 
     renderTable(inventory);
 }
