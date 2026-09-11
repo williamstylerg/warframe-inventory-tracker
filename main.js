@@ -28,6 +28,9 @@ const {
     fetchRelicDropData,
     refreshAllRelicData,
 } = require("./src-main/stores/relicStore");
+const { loadPortfolioHistory, snapshotPortfolioValue } = require("./src-main/stores/portfolioStore");
+const { loadAppSettings, saveAppSettings } = require("./src-main/stores/appSettingsStore");
+const { exportBackup, importBackup, writeAutoBackup, restoreAutoBackup, exportInventoryCsv } = require("./src-main/services/backupService");
 
 // ------------------------------
 // Cache for item tags
@@ -252,81 +255,14 @@ async function backfillTiers() {
     return { success: true, updated, total: inventory.length };
 }
 
-// ------------------------------
-// Backup / Restore
-// ------------------------------
-
-async function exportBackup() {
-    const inventory = loadInventory();
-    const buildTracker = loadBuildTracker();
-
-    const backup = {
-        appVersion: app.getVersion(),
-        exportedAt: Date.now(),
-        inventory,
-        buildTracker,
-    };
-
-    const result = await dialog.showSaveDialog(mainWindow, {
-        title: "Export Backup",
-        defaultPath: `warframe-tracker-backup-${new Date().toISOString().slice(0, 10)}.json`,
-        filters: [{ name: "JSON Backup", extensions: ["json"] }],
-    });
-
-    if (result.canceled) {
-        return { success: false, reason: "Export cancelled." };
-    }
-
-    fs.writeFileSync(result.filePath, JSON.stringify(backup, null, 2));
-    return { success: true, path: result.filePath };
-}
-
-async function importBackup() {
-    const result = await dialog.showOpenDialog(mainWindow, {
-        title: "Import Backup",
-        filters: [{ name: "JSON Backup", extensions: ["json"] }],
-        properties: ["openFile"],
-    });
-
-    if (result.canceled || result.filePaths.length === 0) {
-        return { success: false, reason: "Import cancelled." };
-    }
-
-    try {
-        const raw = fs.readFileSync(result.filePaths[0], "utf8");
-        const backup = JSON.parse(raw);
-
-        if (!Array.isArray(backup.inventory) || !Array.isArray(backup.buildTracker)) {
-            return { success: false, reason: "This file doesn't look like a valid backup." };
-        }
-
-        saveInventory(backup.inventory);
-        saveBuildTracker(backup.buildTracker);
-
-        return { success: true, inventory: backup.inventory, buildTracker: backup.buildTracker };
-    } catch (err) {
-        return { success: false, reason: "Couldn't read that file: " + err.message };
-    }
-}
 
 // Auto backup & snapshot price on app close
+
 app.on("before-quit", (event) => {
     event.preventDefault();
 
     try {
-        const inventory = loadInventory();
-        const buildTracker = loadBuildTracker();
-        const backup = {
-            appVersion: app.getVersion(),
-            exportedAt: Date.now(),
-            inventory,
-            buildTracker,
-        };
-
-        const autoBackupPath = path.join(app.getPath("userData"), "auto-backup.json");
-        fs.writeFileSync(autoBackupPath, JSON.stringify(backup, null, 2));
-        console.log("Auto-backup saved to:", autoBackupPath);
-
+        writeAutoBackup();
         snapshotPortfolioValue();
     } catch (err) {
         console.log("Auto-backup or portfolio snapshot failed:", err.message);
@@ -335,36 +271,6 @@ app.on("before-quit", (event) => {
     app.exit();
 });
 
-// Resore auto backup
-
-async function restoreAutoBackup() {
-    const autoBackupPath = path.join(app.getPath("userData"), "auto-backup.json");
-
-    if (!fs.existsSync(autoBackupPath)) {
-        return { success: false, reason: "No auto-backup found." };
-    }
-
-    try {
-        const raw = fs.readFileSync(autoBackupPath, "utf8");
-        const backup = JSON.parse(raw);
-
-        if (!Array.isArray(backup.inventory) || !Array.isArray(backup.buildTracker)) {
-            return { success: false, reason: "The auto-backup file looks corrupted." };
-        }
-
-        saveInventory(backup.inventory);
-        saveBuildTracker(backup.buildTracker);
-
-        return {
-            success: true,
-            inventory: backup.inventory,
-            buildTracker: backup.buildTracker,
-            exportedAt: backup.exportedAt,
-        };
-    } catch (err) {
-        return { success: false, reason: "Couldn't read the auto-backup: " + err.message };
-    }
-}
 
 // combine set logic
 async function combineSetComponents(setName) {
@@ -607,80 +513,6 @@ async function getRelicRecommendations() {
     return recommendations;
 }
 
-// ------------------------------
-// Portfolio Value History
-// ------------------------------
-
-const portfolioHistoryPath = path.join(app.getPath("userData"), "portfolioHistory.json");
-
-function ensurePortfolioHistoryFile() {
-    if (!fs.existsSync(portfolioHistoryPath)) {
-        fs.writeFileSync(portfolioHistoryPath, "[]");
-    }
-}
-
-function loadPortfolioHistory() {
-    ensurePortfolioHistoryFile();
-    try {
-        return JSON.parse(fs.readFileSync(portfolioHistoryPath, "utf8"));
-    } catch {
-        return [];
-    }
-}
-
-function savePortfolioHistory(history) {
-    fs.writeFileSync(portfolioHistoryPath, JSON.stringify(history, null, 2));
-}
-
-function snapshotPortfolioValue() {
-    const inventory = loadInventory();
-    const totalPlat = inventory.reduce(
-        (sum, item) => sum + Number(item.price) * Number(item.quantity),
-        0,
-    );
-    const totalUnique = inventory.length;
-    const totalItems = inventory.reduce((sum, item) => sum + Number(item.quantity), 0);
-    const today = new Date().toISOString().slice(0, 10);
-
-    let history = loadPortfolioHistory();
-    const existingEntry = history.find((h) => h.date === today);
-
-    if (existingEntry) {
-        existingEntry.totalPlat = totalPlat;
-        existingEntry.totalUnique = totalUnique;
-        existingEntry.totalItems = totalItems;
-    } else {
-        history.push({ date: today, totalPlat, totalUnique, totalItems });
-    }
-
-    savePortfolioHistory(history);
-    return history;
-}
-
-// ------------------------------
-// App Settings
-// ------------------------------
-
-const appSettingsPath = path.join(app.getPath("userData"), "appSettings.json");
-
-function ensureAppSettingsFile() {
-    if (!fs.existsSync(appSettingsPath)) {
-        fs.writeFileSync(appSettingsPath, JSON.stringify({ platPerDucat: 15 }));
-    }
-}
-
-function loadAppSettings() {
-    ensureAppSettingsFile();
-    try {
-        return JSON.parse(fs.readFileSync(appSettingsPath, "utf8"));
-    } catch {
-        return { platPerDucat: 15 };
-    }
-}
-
-function saveAppSettings(settings) {
-    fs.writeFileSync(appSettingsPath, JSON.stringify(settings, null, 2));
-}
 
 //--------------------------
 // App Settings Handler for Plat/Ducat details
@@ -716,73 +548,12 @@ async function backfillDucats() {
     return { success: true, updated, total: inventory.length };
 }
 
-//-------------------------------
-// CSV Export
-//-------------------------------
-
-async function exportInventoryCsv() {
-    const inventory = loadInventory();
-
-    const headers = [
-        "Name",
-        "Type",
-        "Rarity",
-        "Vaulted",
-        "Set",
-        "Quantity",
-        "Price",
-        "Total Value",
-        "Ducats",
-        "Tier",
-        "Last Updated",
-    ];
-
-    const rows = inventory.map((item) => [
-        item.name,
-        item.type,
-        item.rarity,
-        item.vaulted ? "Yes" : "No",
-        item.set,
-        item.quantity,
-        item.price,
-        item.price * item.quantity,
-        item.ducats ?? "",
-        item.tier ?? "",
-        new Date(item.lastUpdated).toLocaleDateString(),
-    ]);
-
-    // Escape fields containing commas, quotes, or newlines per CSV spec
-    function escapeCsvField(field) {
-        const str = String(field);
-        if (str.includes(",") || str.includes('"') || str.includes("\n")) {
-            return `"${str.replace(/"/g, '""')}"`;
-        }
-        return str;
-    }
-
-    const csvLines = [headers, ...rows].map((row) => row.map(escapeCsvField).join(","));
-    const csvContent = csvLines.join("\n");
-
-    const result = await dialog.showSaveDialog(mainWindow, {
-        title: "Export Inventory to CSV",
-        defaultPath: `warframe-inventory-${new Date().toISOString().slice(0, 10)}.csv`,
-        filters: [{ name: "CSV File", extensions: ["csv"] }],
-    });
-
-    if (result.canceled) {
-        return { success: false, reason: "Export cancelled." };
-    }
-
-    fs.writeFileSync(result.filePath, csvContent);
-    return { success: true, path: result.filePath };
-}
-
 // ------------------------------
 // IPC handlers
 // ------------------------------
 
 // CSV Export
-ipcMain.handle("inventory:exportCsv", async () => await exportInventoryCsv());
+ipcMain.handle("inventory:exportCsv", async () => await exportInventoryCsv(mainWindow));
 
 // Settings IPCs
 ipcMain.handle("settings:get", () => loadAppSettings());
@@ -797,8 +568,8 @@ ipcMain.handle("inventory:backfillDucats", async () => await backfillDucats());
 ipcMain.handle("portfolio:getHistory", () => loadPortfolioHistory());
 
 // Backup - export and import and auto restore
-ipcMain.handle("backup:export", async () => await exportBackup());
-ipcMain.handle("backup:import", async () => await importBackup());
+ipcMain.handle("backup:export", async () => await exportBackup(mainWindow));
+ipcMain.handle("backup:import", async () => await importBackup(mainWindow));
 ipcMain.handle("backup:restoreAuto", async () => await restoreAutoBackup());
 
 // clear cache
