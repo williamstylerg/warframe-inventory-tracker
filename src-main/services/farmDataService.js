@@ -158,6 +158,24 @@ async function backfillTiers() {
     return { success: true, updated, total: inventory.length };
 }
 
+async function backfillDucats() {
+    let inventory = loadInventory();
+    let updated = 0;
+
+    for (const item of inventory) {
+        if (!item.type.includes("Warframe") && !item.type.includes("Weapon")) continue;
+
+        const ducats = await resolveDucatsForItem(item.name, item.type, item.set);
+        if (ducats !== item.ducats) {
+            item.ducats = ducats;
+            updated++;
+        }
+    }
+
+    saveInventory(inventory);
+    return { success: true, updated, total: inventory.length };
+}
+
 module.exports = {
     loadFarmCache,
     clearFarmCache,
@@ -167,4 +185,5 @@ module.exports = {
     resolveTierForItem,
     resolveDucatsForItem,
     backfillTiers,
+    backfillDucats,
 };

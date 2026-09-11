@@ -107,8 +107,27 @@ async function fetchPriceHistory(slug) {
     }
 }
 
+function inferTypeFromTags(tags) {
+    if (tags.includes("mod")) return "Mod";
+    if (tags.includes("warframe")) return "Warframe Part";
+    if (tags.includes("weapon")) return "Weapon Part";
+    if (tags.includes("arcane")) return "Arcane";
+    if (tags.includes("relic")) return "Relic";
+    if (tags.includes("resource")) return "Resource";
+    return "Misc";
+}
+
+function inferRarityFromTags(tags) {
+    if (tags.includes("rare")) return "Rare";
+    if (tags.includes("uncommon")) return "Uncommon";
+    if (tags.includes("common")) return "Common";
+    return "Unknown";
+}
+
 module.exports = {
     fetchItemDetails,
     fetchPriceForSlug,
     fetchPriceHistory,
+    inferTypeFromTags,
+    inferRarityFromTags,
 };
