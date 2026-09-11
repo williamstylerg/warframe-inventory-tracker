@@ -1,11 +1,6 @@
 // settings.js
 
-import {
-    inventory,
-    setInventory,
-    relicInventory,
-    setPlatPerDucat,
-} from "./state.js";
+import { inventory, setInventory, relicInventory, setPlatPerDucat } from "./state.js";
 import { getRelicImageName } from "./relicLogic.js";
 import { renderTable, refreshTotals } from "./priceTracker.js";
 import { renderBuildTracker } from "./buildTracker.js";

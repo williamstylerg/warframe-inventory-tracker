@@ -636,10 +636,7 @@
                     <div class="view-header">
                         <h2>Price Tracker</h2>
                         <div style="position: relative; display: inline-block">
-                            <input
-                                id="itemName"
-                                placeholder="Item Name"                               
-                            />
+                            <input id="itemName" placeholder="Item Name" />
                             <div id="suggestions" class="autocomplete-suggestions"></div>
                         </div>
                         <input id="itemSlug" type="hidden" />
@@ -680,7 +677,12 @@
                         </div>
                         <button onclick="addItemToBuildTracker()">Add to Build Tracker</button>
                         <div style="position: relative; display: inline-block">
-                            <button id="buildTrackerFilterToggle" onclick="toggleBuildTrackerFilterMenu()">Filters ▾</button>
+                            <button
+                                id="buildTrackerFilterToggle"
+                                onclick="toggleBuildTrackerFilterMenu()"
+                            >
+                                Filters ▾
+                            </button>
 
                             <div
                                 id="buildTrackerFilterMenu"
@@ -702,16 +704,26 @@
                                     <strong style="font-size: 0.85em; color: #888">Type</strong>
                                     <div style="display: flex; gap: 8px; margin-top: 4px">
                                         <button onclick="setBuildTrackerFilter('all')">All</button>
-                                        <button onclick="setBuildTrackerFilter('warframe')">Warframes</button>
-                                        <button onclick="setBuildTrackerFilter('weapon')">Weapons</button>
+                                        <button onclick="setBuildTrackerFilter('warframe')">
+                                            Warframes
+                                        </button>
+                                        <button onclick="setBuildTrackerFilter('weapon')">
+                                            Weapons
+                                        </button>
                                     </div>
                                 </div>
                                 <div>
                                     <strong style="font-size: 0.85em; color: #888">Rarity</strong>
                                     <div style="display: flex; gap: 8px; margin-top: 4px">
-                                        <button onclick="setBuildTrackerPrimeFilter('all')">Any</button>
-                                        <button onclick="setBuildTrackerPrimeFilter('prime')">Prime Only</button>
-                                        <button onclick="setBuildTrackerPrimeFilter('nonprime')">Non-Prime Only</button>
+                                        <button onclick="setBuildTrackerPrimeFilter('all')">
+                                            Any
+                                        </button>
+                                        <button onclick="setBuildTrackerPrimeFilter('prime')">
+                                            Prime Only
+                                        </button>
+                                        <button onclick="setBuildTrackerPrimeFilter('nonprime')">
+                                            Non-Prime Only
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -732,10 +744,7 @@
                     <div class="view-header">
                         <h2>Relic Inventory</h2>
                         <div style="position: relative; display: inline-block">
-                            <input
-                                id="relicSearchName"
-                                placeholder="Relic Name (e.g. Meso N2)"                              
-                            />
+                            <input id="relicSearchName" placeholder="Relic Name (e.g. Meso N2)" />
                             <div id="relicSuggestions" class="autocomplete-suggestions"></div>
                         </div>
                         <button onclick="addRelicHandler()">Add Relic</button>
@@ -1020,12 +1029,7 @@
                                 <span id="platPerDucatSuggestion"></span
                             ></span>
                         </div>
-                        <input
-                            id="platPerDucatInput"
-                            type="number"
-                            min="1"
-                            style="width: 60px"
-                        />
+                        <input id="platPerDucatInput" type="number" min="1" style="width: 60px" />
                     </div>
                 </div>
 

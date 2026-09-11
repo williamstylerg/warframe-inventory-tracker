@@ -217,7 +217,17 @@
     if (wfcdCategory === "Mods" || wfcdType === "Mod") return "Mod";
     if (wfcdCategory === "Arcanes") return "Arcane";
     if (wfcdCategory === "Relics") return "Relic";
-    if (["Rifle", "Pistol", "Melee", "Shotgun", "Sentinel Weapon", "Archwing", "Arch-Gun", "Arch-Melee"].includes(wfcdType)) return "Weapon Part";
+    if ([
+      "Rifle",
+      "Pistol",
+      "Melee",
+      "Shotgun",
+      "Sentinel Weapon",
+      "Archwing",
+      "Arch-Gun",
+      "Arch-Melee"
+    ].includes(wfcdType))
+      return "Weapon Part";
     return "Misc";
   }
   function setBuildTrackerFilter(filter) {
@@ -255,7 +265,9 @@
   async function uncheckOffComponent(setName, partName, isPrime) {
     if (isPrime) {
       const fullName = `${setName} ${partName}`;
-      const existingItem = inventory.find((i) => normalizeNameClient(i.name) === normalizeNameClient(fullName));
+      const existingItem = inventory.find(
+        (i) => normalizeNameClient(i.name) === normalizeNameClient(fullName)
+      );
       if (existingItem) {
         const newInv = await window.api.deleteItem(existingItem.slug);
         setInventory(newInv);
@@ -352,7 +364,9 @@
         let owned;
         if (isPrime) {
           const fullName = `${trackedSet.name} ${part.name}`;
-          owned = inventory.some((invItem) => normalizeNameClient(invItem.name) === normalizeNameClient(fullName) && invItem.quantity > 0);
+          owned = inventory.some(
+            (invItem) => normalizeNameClient(invItem.name) === normalizeNameClient(fullName) && invItem.quantity > 0
+          );
         } else {
           owned = (trackedSet.obtainedParts || []).includes(part.name);
         }
@@ -361,7 +375,13 @@
       }
       const missingCount = requiredParts.length - ownedCount;
       if (missingCount === 1) {
-        almostComplete.push({ setName: trackedSet.name, setType: trackedSet.type, missingPart: missingParts[0], ownedCount, totalRequired: requiredParts.length });
+        almostComplete.push({
+          setName: trackedSet.name,
+          setType: trackedSet.type,
+          missingPart: missingParts[0],
+          ownedCount,
+          totalRequired: requiredParts.length
+        });
       }
     }
     return almostComplete;
@@ -427,7 +447,9 @@
           let owned;
           if (isPrime) {
             const fullName = `${trackedSet.name} ${part.name}`;
-            owned = inventory.some((invItem) => normalizeNameClient(invItem.name) === normalizeNameClient(fullName) && invItem.quantity > 0);
+            owned = inventory.some(
+              (invItem) => normalizeNameClient(invItem.name) === normalizeNameClient(fullName) && invItem.quantity > 0
+            );
           } else {
             owned = (trackedSet.obtainedParts || []).includes(part.name);
           }
@@ -1065,6 +1087,7 @@ ${result.path}`);
   });
   init_state();
   init_shared();
+  init_relicLogic();
   async function loadRecommendations() {
     document.getElementById("recommendationsNavBtn").style.display = "block";
     window.switchView("recommendations");
@@ -1106,7 +1129,8 @@ ${result.path}`);
           html += `</ul>`;
         }
         html += `</div>`;
-        if (imageUrl) html += `<img src="${imageUrl}" style="width:160px; height:160px; object-fit:contain; background:#111; border-radius:6px; flex-shrink:0;" alt="${setName}">`;
+        if (imageUrl)
+          html += `<img src="${imageUrl}" style="width:160px; height:160px; object-fit:contain; background:#111; border-radius:6px; flex-shrink:0;" alt="${setName}">`;
         html += `</div>`;
       }
     } else {
@@ -1117,9 +1141,19 @@ ${result.path}`);
       }
       for (const key in grouped) {
         const quantity = grouped[key][0].relicQuantity;
-        html += `<div class="recommendation-set-group"><h3>${key} (${quantity} owned)</h3><ul>`;
-        for (const rec of grouped[key]) html += `<li>${rec.targetItem} (${rec.targetSet}) \u2014 ${rec.chance}% at ${rec.minRefinement}</li>`;
+        const imageName = getRelicImageName(key);
+        const imageUrl = imageName ? `https://cdn.warframestat.us/img/${imageName}` : null;
+        html += `<div class="recommendation-set-group" style="display:flex; justify-content:space-between; align-items:flex-start; gap:16px;">`;
+        html += `<div style="flex-grow:1;">`;
+        html += `<h3>${key} (${quantity} owned)</h3><ul>`;
+        for (const rec of grouped[key]) {
+          html += `<li>${rec.targetItem} (${rec.targetSet}) \u2014 ${rec.chance}% at ${rec.minRefinement}</li>`;
+        }
         html += `</ul></div>`;
+        if (imageUrl) {
+          html += `<img src="${imageUrl}" style="width:100px; height:100px; object-fit:contain; background:#111; border-radius:6px; flex-shrink:0;" alt="${key}">`;
+        }
+        html += `</div>`;
       }
     }
     container.innerHTML = html;
@@ -1141,15 +1175,28 @@ ${result.path}`);
       for (const state of ["Intact", "Exceptional", "Flawless", "Radiant"]) {
         const rewards = dropData.rewards[state] || [];
         for (const reward of rewards) {
-          map.add(reward.itemName.trim().toLowerCase().replace(/\s+blueprint$/i, ""));
+          map.add(
+            reward.itemName.trim().toLowerCase().replace(/\s+blueprint$/i, "")
+          );
         }
       }
     }
     return map;
   }
   function getAllPrimeSetNames() {
-    const relevantCategories = ["Warframes", "Primary", "Secondary", "Melee", "Sentinels", "Archwing", "Arch-Gun", "Arch-Melee"];
-    return wfcdItems.filter((i) => i.name.includes("Prime") && relevantCategories.includes(i.category));
+    const relevantCategories = [
+      "Warframes",
+      "Primary",
+      "Secondary",
+      "Melee",
+      "Sentinels",
+      "Archwing",
+      "Arch-Gun",
+      "Arch-Melee"
+    ];
+    return wfcdItems.filter(
+      (i) => i.name.includes("Prime") && relevantCategories.includes(i.category)
+    );
   }
   async function discoverNewSets() {
     const allSets = getAllPrimeSetNames();
@@ -1171,7 +1218,13 @@ ${result.path}`);
         }
       }
       if (matchedCount / requiredParts.length >= 0.75) {
-        discoveries.push({ setName: set.name, setType: set.type, matchedCount, totalRequired: requiredParts.length, matchedParts });
+        discoveries.push({
+          setName: set.name,
+          setType: set.type,
+          matchedCount,
+          totalRequired: requiredParts.length,
+          matchedParts
+        });
       }
     }
     return discoveries;
@@ -1214,7 +1267,8 @@ ${result.path}`);
       const imageName = await window.api.getItemImage(d.setName, d.setType);
       const imageUrl = imageName ? `https://cdn.warframestat.us/img/${imageName}` : null;
       html += `<div class="set-card">`;
-      if (imageUrl) html += `<img src="${imageUrl}" class="set-card-image" style="height:100px;" alt="${d.setName}">`;
+      if (imageUrl)
+        html += `<img src="${imageUrl}" class="set-card-image" style="height:100px;" alt="${d.setName}">`;
       html += `<h3 class="item-name" data-action="show-farm-info-obj" data-name="${safeSetName}" data-set="${safeSetName}" data-type="${d.setType}">${d.setName}</h3>
             <p>${d.matchedCount} / ${d.totalRequired} components possible from your relics</p>
             <p style="font-size:0.85em; color:#aaa;">${d.matchedParts.join(", ")}</p>
@@ -1427,7 +1481,23 @@ ${result.path}`);
 
   // src/modules/discover.js
   function buildDiscoverIndex() {
-    const warframeWeaponEntries = wfcdItems.filter((i) => ["Warframes", "Primary", "Secondary", "Melee", "Sentinels", "Archwing", "Arch-Gun", "Arch-Melee", "Mods"].includes(i.category)).map((i) => ({ name: i.name, category: i.category === "Mods" ? "mod" : "item", type: i.type }));
+    const warframeWeaponEntries = wfcdItems.filter(
+      (i) => [
+        "Warframes",
+        "Primary",
+        "Secondary",
+        "Melee",
+        "Sentinels",
+        "Archwing",
+        "Arch-Gun",
+        "Arch-Melee",
+        "Mods"
+      ].includes(i.category)
+    ).map((i) => ({
+      name: i.name,
+      category: i.category === "Mods" ? "mod" : "item",
+      type: i.type
+    }));
     const relicEntries = relicNameList.map((name) => ({ name, category: "relic", type: null }));
     setDiscoverIndex([...warframeWeaponEntries, ...relicEntries]);
   }
@@ -1643,7 +1713,8 @@ ${result.path}`);
       } else if (a.action === "toggle-component") {
         target.blur();
         const isPrime = a.prime === "true";
-        if (target.checked) await checkOffComponent(a.set, a.part, isPrime, a.category);
+        if (target.checked)
+          await checkOffComponent(a.set, a.part, isPrime, a.category);
         else await uncheckOffComponent(a.set, a.part, isPrime);
       }
     }
@@ -1654,8 +1725,10 @@ ${result.path}`);
   document.addEventListener("input", (event) => {
     if (event.target.id === "itemName") showSuggestions(event.target.value);
     if (event.target.id === "priceSearchInput") filterPriceTable(event.target.value);
-    if (event.target.id === "buildTrackerName") showBuildTrackerSuggestions(event.target.value);
-    if (event.target.id === "buildTrackerSearchInput") filterBuildTracker(event.target.value);
+    if (event.target.id === "buildTrackerName")
+      showBuildTrackerSuggestions(event.target.value);
+    if (event.target.id === "buildTrackerSearchInput")
+      filterBuildTracker(event.target.value);
     if (event.target.id === "relicSearchName") showRelicSuggestions(event.target.value);
     if (event.target.id === "relicSearchFilterInput") filterRelicGrid(event.target.value);
     if (event.target.id === "discoverSearchInput") searchDiscover(event.target.value);
@@ -1705,7 +1778,11 @@ ${result.path}`);
     try {
       const response = await fetch("https://api.warframestat.us/items?only=name,type");
       const items = await response.json();
-      setArchwingRelatedNames(new Set(items.filter((i) => i.type && i.type.includes("Arch")).map((i) => i.name.trim().toLowerCase())));
+      setArchwingRelatedNames(
+        new Set(
+          items.filter((i) => i.type && i.type.includes("Arch")).map((i) => i.name.trim().toLowerCase())
+        )
+      );
     } catch (err) {
       console.log("Failed to load archwing-related names:", err.message);
       setArchwingRelatedNames(/* @__PURE__ */ new Set());

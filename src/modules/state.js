@@ -24,44 +24,44 @@ export let lastDiscoveryResults = [];
 export let discoverFilter = "all";
 export let discoverHasRun = false;
 
-export function setDiscoverHasRun(v) { 
-    discoverHasRun = v; 
+export function setDiscoverHasRun(v) {
+    discoverHasRun = v;
 }
 
-export function setDiscoverFilterState(v) { 
-    discoverFilter = v; 
+export function setDiscoverFilterState(v) {
+    discoverFilter = v;
 }
 
-export function setDiscoverIndexBuilt(v) { 
-    discoverIndexBuilt = v; 
+export function setDiscoverIndexBuilt(v) {
+    discoverIndexBuilt = v;
 }
 
-export function setRecommendationGroupMode(v) { 
-    recommendationGroupMode = v; 
+export function setRecommendationGroupMode(v) {
+    recommendationGroupMode = v;
 }
 
-export function setCurrentRecommendations(v) { 
-    currentRecommendations = v; 
+export function setCurrentRecommendations(v) {
+    currentRecommendations = v;
 }
 
-export function setLastDiscoveryResults(v) { 
-    lastDiscoveryResults = v; 
+export function setLastDiscoveryResults(v) {
+    lastDiscoveryResults = v;
 }
 
-export function setBuildTrackerFilterState(v) { 
-    buildTrackerFilter = v; 
+export function setBuildTrackerFilterState(v) {
+    buildTrackerFilter = v;
 }
 
-export function setBuildTrackerPrimeFilterState(v) { 
-    buildTrackerPrimeFilter = v; 
+export function setBuildTrackerPrimeFilterState(v) {
+    buildTrackerPrimeFilter = v;
 }
 
-export function setBuildTrackerSearchQuery(v) { 
-    buildTrackerSearchQuery = v; 
+export function setBuildTrackerSearchQuery(v) {
+    buildTrackerSearchQuery = v;
 }
 
-export function setSelectedBuildTrackerItem(v) { 
-    selectedBuildTrackerItem = v; 
+export function setSelectedBuildTrackerItem(v) {
+    selectedBuildTrackerItem = v;
 }
 
 export function setSortColumn(column) {
