@@ -37,6 +37,8 @@
       "preload.js",
       "dashboard.html",
       "dashboard-bundle.js",
+      "src-main/**/*",
+      "farmLogic.js",
       "assets/**/*",
       "bundled-relic-cache.json"
     ],
