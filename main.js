@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog } = require("electron");
+const { app, BrowserWindow, ipcMain, dialog } = require("electron");  //ipcMain added back as dependency for test of OCR
 app.setName("Warframe Inventory Tracker");
 
 const path = require("path");
@@ -84,4 +84,19 @@ app.on("window-all-closed", () => {
     if (process.platform !== "darwin") {
         app.quit();
     }
+});
+
+
+//test for screen capture
+const { getScreenSources, captureFullResolution } = require("./src-main/services/screenCaptureService");
+ipcMain.handle("screen:getSources", async () => await getScreenSources());
+ipcMain.handle("screen:captureFullRes", async (event, { sourceId }) => {
+    return await captureFullResolution(sourceId);
+});
+
+const Tesseract = require("tesseract.js");
+
+ipcMain.handle("ocr:testRead", async (event, { imageDataUrl }) => {
+    const result = await Tesseract.recognize(imageDataUrl, "eng");
+    return result.data.text;
 });

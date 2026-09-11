@@ -83,4 +83,12 @@ contextBridge.exposeInMainWorld("api", {
     backfillDucats: () => ipcRenderer.invoke("inventory:backfillDucats"),
 
     exportInventoryCsv: () => ipcRenderer.invoke("inventory:exportCsv"),
+
+    getScreenSources: () => ipcRenderer.invoke("screen:getSources"),  //test module for ocr
+
+    captureFullRes: (sourceId) => ipcRenderer.invoke("screen:captureFullRes", { sourceId }), //more test
+
+    ocrTestRead: (imageDataUrl) => ipcRenderer.invoke("ocr:testRead", { imageDataUrl }) //even more test
+
+
 });

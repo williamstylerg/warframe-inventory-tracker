@@ -224,3 +224,236 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     await relics.refreshRelics();
 });
+
+
+///// TEST FOR OCR
+async function ocrListSources() {
+    const sources = await window.api.getScreenSources();
+    console.log("Available sources:");
+    sources.forEach((s, i) => console.log(`${i}: ${s.name}`));
+    window._ocrSources = sources; // stash for the next step
+}
+
+async function ocrSaveChoice(playMode, index) {
+    const selected = window._ocrSources[index];
+    if (!selected) {
+        console.log("Invalid selection.");
+        return;
+    }
+
+    await window.api.updateAppSettings({
+        playMode,
+        captureSourceName: selected.name,
+    });
+
+    console.log("Saved:", { playMode, captureSourceName: selected.name });
+}
+
+window.ocrListSources = ocrListSources;
+window.ocrSaveChoice = ocrSaveChoice;
+
+function findWarframeSource(sources) {
+    const excludePatterns = [
+        "warframe inventory tracker",
+        " - opera",
+        " - chrome",
+        " - firefox",
+        " - edge",
+        " - visual studio code",
+        " - notepad",
+        ".js",
+        ".json",
+        ".html",
+    ];
+
+    return sources.filter((s) => {
+        const name = s.name.toLowerCase();
+        const isExcluded = excludePatterns.some((pattern) => name.includes(pattern));
+        return name.includes("warframe") && !isExcluded;
+    });
+}
+
+async function ocrAutoDetect() {
+    const sources = await window.api.getScreenSources();
+    const matches = findWarframeSource(sources);
+
+    if (matches.length === 1) {
+        const selected = matches[0];
+        await window.api.updateAppSettings({
+            playMode: "auto-detected",
+            captureSourceName: selected.name,
+        });
+        console.log("Auto-detected and saved:", selected.name);
+        return selected;
+    } else if (matches.length === 0) {
+        console.log("No Warframe window found. Is the game running?");
+        return null;
+    } else {
+        console.log("Multiple possible matches, manual selection needed:");
+        matches.forEach((s, i) => console.log(`${i}: ${s.name}`));
+        return null;
+    }
+}
+
+window.ocrAutoDetect = ocrAutoDetect;
+
+// ============================================================
+// TEMPORARY OCR EXPLORATION TEST CODE — remove before real feature work
+// ============================================================
+
+window._testResults = [];
+
+async function runFullRewardTest() {
+    const startTime = Date.now();
+    const timestamp = new Date().toLocaleTimeString();
+
+    const settings = await window.api.getAppSettings();
+    const sources = await window.api.getScreenSources();
+    const match = sources.find((s) => s.name === settings.captureSourceName);
+    const capture = await captureViaStream(match.id);
+    window._lastCapture = capture;
+
+    const regions = [
+        { x: 639, y: 555, width: 314, height: 58 },
+        { x: 960, y: 557, width: 312, height: 53 },
+        { x: 1284, y: 537, width: 311, height: 71 },
+        { x: 1609, y: 550, width: 304, height: 56 },
+    ];
+
+    const ocrResults = await Promise.all(
+        regions.map(async (r) => {
+            const img = new Image();
+            img.src = capture;
+            await new Promise((resolve) => (img.onload = resolve));
+
+            const canvas = document.createElement("canvas");
+            canvas.width = r.width;
+            canvas.height = r.height;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, r.x, r.y, r.width, r.height, 0, 0, r.width, r.height);
+
+            const imageData = ctx.getImageData(0, 0, r.width, r.height);
+            const data = imageData.data;
+            const contrast = 80;
+            const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
+            for (let i = 0; i < data.length; i += 4) {
+                const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+                const adjusted = factor * (gray - 128) + 128;
+                const clamped = Math.max(0, Math.min(255, adjusted));
+                data[i] = data[i + 1] = data[i + 2] = clamped;
+            }
+            ctx.putImageData(imageData, 0, 0);
+
+            const croppedDataUrl = canvas.toDataURL();
+            return await window.api.ocrTestRead(croppedDataUrl);
+        }),
+    );
+
+    if (!window._cachedItemList) {
+        const res = await fetch("https://api.warframe.market/v2/items");
+        const json = await res.json();
+        window._cachedItemList = json.data.map((i) => ({ name: i.i18n.en.name, slug: i.slug }));
+    }
+    const itemList = window._cachedItemList;
+
+    const identified = ocrResults.map((text) => {
+        const normalized = text.toLowerCase().replace(/[^a-z0-9\s]/g, " ");
+        return itemList.find((item) => {
+            const itemName = item.name.toLowerCase();
+            return itemName.length >= 6 && normalized.includes(itemName);
+        });
+    });
+
+    const priceResults = await Promise.all(
+        identified.map(async (item) => {
+            if (!item) return null;
+            try {
+                const res = await fetch(
+                    `https://api.warframe.market/v2/orders/item/${item.slug}/top`,
+                    {
+                        headers: {
+                            "User-Agent": "Mozilla/5.0",
+                            Accept: "application/json",
+                            Platform: "pc",
+                            Language: "en",
+                            Crossplay: "true",
+                        },
+                    },
+                );
+                const data = await res.json();
+                const sellOrders = (data.data?.sell || [])
+                    .filter((o) => o.visible)
+                    .sort((a, b) => a.platinum - b.platinum);
+                return { name: item.name, price: sellOrders[0]?.platinum ?? "N/A" };
+            } catch {
+                return { name: item.name, price: "N/A" };
+            }
+        }),
+    );
+
+    const elapsed = Date.now() - startTime;
+
+    const runRecord = {
+        timestamp,
+        elapsed,
+        ocrResults,
+        identified: identified.map((i) => i?.name || null),
+        priceResults,
+        capture,
+    };
+    window._testResults.push(runRecord);
+
+    console.log(`[${timestamp}] Run #${window._testResults.length} — ${elapsed}ms`, runRecord);
+
+    const popup = document.createElement("div");
+    popup.style.cssText =
+        "position:fixed; top:100px; left:100px; background:#222; border:2px solid #4dd9ec; border-radius:8px; padding:20px; z-index:999999; color:#eee; font-family:sans-serif;";
+    popup.innerHTML =
+        `<h2>Reward Prices (${elapsed}ms) — Run #${window._testResults.length}</h2>` +
+        priceResults
+            .map((r) => (r ? `<p><strong>${r.name}</strong>: ${r.price} plat</p>` : `<p>Unidentified</p>`))
+            .join("") +
+        `<button id="closeTestPopup" style="margin-top:10px;">Close</button>`;
+    document.body.appendChild(popup);
+    document.getElementById("closeTestPopup").onclick = () => popup.remove();
+}
+
+async function captureViaStream(sourceId) {
+    const stream = await navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: {
+            mandatory: {
+                chromeMediaSource: "desktop",
+                chromeMediaSourceId: sourceId,
+            },
+        },
+    });
+
+    const video = document.createElement("video");
+    video.srcObject = stream;
+    await video.play();
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    stream.getTracks().forEach((track) => track.stop());
+
+    return canvas.toDataURL();
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    const triggerBtn = document.createElement("button");
+    triggerBtn.textContent = "📸 Capture Reward";
+    triggerBtn.style.cssText =
+        "position:fixed; bottom:20px; right:20px; z-index:999998; padding:12px 20px; background:#4dd9ec; color:#111; font-weight:bold; border:none; border-radius:8px; cursor:pointer; font-size:14px;";
+    triggerBtn.onclick = () => runFullRewardTest();
+    document.body.appendChild(triggerBtn);
+});
+
+// ============================================================
+// END TEMPORARY OCR EXPLORATION TEST CODE
+// ============================================================

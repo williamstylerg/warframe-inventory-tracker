@@ -13,11 +13,11 @@
     "lint": "eslint main.js preload.js src/",
     "format": "prettier --write main.js preload.js src/ *.html",
     "test": "jest"
-    
   },
   "dependencies": {
     "axios": "^1.18.1",
-    "electron-updater": "^6.8.9"
+    "electron-updater": "^6.8.9",
+    "tesseract.js": "^7.0.0"
   },
   "devDependencies": {
     "electron": "^43.1.1",

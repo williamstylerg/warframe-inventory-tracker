@@ -6,7 +6,7 @@ const appSettingsPath = path.join(app.getPath("userData"), "appSettings.json");
 
 function ensureAppSettingsFile() {
     if (!fs.existsSync(appSettingsPath)) {
-        fs.writeFileSync(appSettingsPath, JSON.stringify({ platPerDucat: 15 }));
+        fs.writeFileSync(appSettingsPath, JSON.stringify({ platPerDucat: 15, playMode: null, caputreSourceName: null }));
     }
 }
 
@@ -15,7 +15,7 @@ function loadAppSettings() {
     try {
         return JSON.parse(fs.readFileSync(appSettingsPath, "utf8"));
     } catch {
-        return { platPerDucat: 15 };
+        return { platPerDucat: 15, playMode: null, captureSourceName: null };
     }
 }
 
