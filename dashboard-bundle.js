@@ -1622,6 +1622,13 @@ ${result.path}`);
         break;
     }
   });
+  document.addEventListener("click", (event) => {
+    const menu = document.getElementById("buildTrackerFilterMenu");
+    const toggleBtn = document.getElementById("buildTrackerFilterToggle");
+    if (menu.style.display === "block" && !menu.contains(event.target) && event.target !== toggleBtn) {
+      menu.style.display = "none";
+    }
+  });
   document.addEventListener("change", async (event) => {
     const target = event.target.closest("[data-action]");
     if (target) {

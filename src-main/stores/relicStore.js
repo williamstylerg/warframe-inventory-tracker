@@ -14,7 +14,6 @@ function ensureRelicInventoryFile() {
 
 function loadRelicInventory() {
     ensureRelicInventoryFile();
-    console.log("Reading relics from:", relicInventoryPath);
     try {
         const data = fs.readFileSync(relicInventoryPath, "utf8");
         return JSON.parse(data);

@@ -679,38 +679,41 @@
                             ></div>
                         </div>
                         <button onclick="addItemToBuildTracker()">Add to Build Tracker</button>
-                        <button onclick="toggleBuildTrackerFilterMenu()">Filters ▾</button>
+                        <div style="position: relative; display: inline-block">
+                            <button id="buildTrackerFilterToggle" onclick="toggleBuildTrackerFilterMenu()">Filters ▾</button>
 
-                        <div
-                            id="buildTrackerFilterMenu"
-                            style="
-                                display: none;
-                                position: absolute;
-                                background: #222;
-                                border: 1px solid #333;
-                                border-radius: 6px;
-                                padding: 12px;
-                                z-index: 20;
-                                margin-top: 4px;
-                            "
-                        >
-                            <div style="margin-bottom: 8px">
-                                <strong style="font-size: 0.85em; color: #888">Type</strong><br />
-                                <button onclick="setBuildTrackerFilter('all')">All</button>
-                                <button onclick="setBuildTrackerFilter('warframe')">
-                                    Warframes
-                                </button>
-                                <button onclick="setBuildTrackerFilter('weapon')">Weapons</button>
-                            </div>
-                            <div>
-                                <strong style="font-size: 0.85em; color: #888">Rarity</strong><br />
-                                <button onclick="setBuildTrackerPrimeFilter('all')">Any</button>
-                                <button onclick="setBuildTrackerPrimeFilter('prime')">
-                                    Prime Only
-                                </button>
-                                <button onclick="setBuildTrackerPrimeFilter('nonprime')">
-                                    Non-Prime Only
-                                </button>
+                            <div
+                                id="buildTrackerFilterMenu"
+                                style="
+                                    display: none;
+                                    position: absolute;
+                                    top: 100%;
+                                    left: 0;
+                                    background: #222;
+                                    border: 1px solid #333;
+                                    border-radius: 6px;
+                                    padding: 12px;
+                                    z-index: 20;
+                                    margin-top: 4px;
+                                    min-width: 260px;
+                                "
+                            >
+                                <div style="margin-bottom: 8px">
+                                    <strong style="font-size: 0.85em; color: #888">Type</strong>
+                                    <div style="display: flex; gap: 8px; margin-top: 4px">
+                                        <button onclick="setBuildTrackerFilter('all')">All</button>
+                                        <button onclick="setBuildTrackerFilter('warframe')">Warframes</button>
+                                        <button onclick="setBuildTrackerFilter('weapon')">Weapons</button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <strong style="font-size: 0.85em; color: #888">Rarity</strong>
+                                    <div style="display: flex; gap: 8px; margin-top: 4px">
+                                        <button onclick="setBuildTrackerPrimeFilter('all')">Any</button>
+                                        <button onclick="setBuildTrackerPrimeFilter('prime')">Prime Only</button>
+                                        <button onclick="setBuildTrackerPrimeFilter('nonprime')">Non-Prime Only</button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
