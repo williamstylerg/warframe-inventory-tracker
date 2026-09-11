@@ -638,8 +638,7 @@
                         <div style="position: relative; display: inline-block">
                             <input
                                 id="itemName"
-                                placeholder="Item Name"
-                                oninput="showSuggestions(this.value)"
+                                placeholder="Item Name"                               
                             />
                             <div id="suggestions" class="autocomplete-suggestions"></div>
                         </div>
@@ -658,7 +657,6 @@
                         <input
                             id="priceSearchInput"
                             placeholder="Search inventory..."
-                            oninput="filterPriceTable(this.value)"
                             style="width: 200px; margin-left: auto"
                         />
                     </div>
@@ -667,13 +665,12 @@
                 </div>
 
                 <div id="view-build" class="view" style="display: none">
-                    <div class="view-header" style="position: relative">
+                    <div class="view-header">
                         <h2>Build Tracker</h2>
                         <div style="position: relative; display: inline-block">
                             <input
                                 id="buildTrackerName"
                                 placeholder="Item Name"
-                                oninput="showBuildTrackerSuggestions(this.value)"
                                 style="width: 200px"
                             />
                             <div
@@ -720,7 +717,6 @@
                         <input
                             id="buildTrackerSearchInput"
                             placeholder="Search sets..."
-                            oninput="filterBuildTracker(this.value)"
                             style="width: 200px; margin-left: auto"
                         />
                     </div>
@@ -735,9 +731,7 @@
                         <div style="position: relative; display: inline-block">
                             <input
                                 id="relicSearchName"
-                                placeholder="Relic Name (e.g. Meso N2)"
-                                oninput="showRelicSuggestions(this.value)"
-                                onkeydown="handleRelicSearchKeydown(event)"
+                                placeholder="Relic Name (e.g. Meso N2)"                              
                             />
                             <div id="relicSuggestions" class="autocomplete-suggestions"></div>
                         </div>
@@ -747,7 +741,6 @@
                         <input
                             id="relicSearchFilterInput"
                             placeholder="Search owned relics..."
-                            oninput="filterRelicGrid(this.value)"
                             style="width: 200px; margin-left: auto"
                         />
                     </div>
@@ -836,7 +829,6 @@
                         <input
                             id="discoverSearchInput"
                             placeholder="Search any Warframe, weapon, mod, or relic..."
-                            oninput="searchDiscover(this.value)"
                             style="width: 400px"
                         />
                     </div>
@@ -1030,7 +1022,6 @@
                             type="number"
                             min="1"
                             style="width: 60px"
-                            onchange="updatePlatPerDucat(this.value)"
                         />
                     </div>
                 </div>

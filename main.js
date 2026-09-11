@@ -15,37 +15,23 @@ app.setName("Warframe Inventory Tracker");
 
 let mainWindow;
 
-// Cache Helper
-function ensureCacheFile() {
-    if (!fs.existsSync(cachePath)) {
-        fs.writeFileSync(cachePath, "{}");
-    }
-}
-
-function loadCache() {
-    ensureCacheFile();
-    return JSON.parse(fs.readFileSync(cachePath, "utf8"));
-}
-
-function saveCache(cache) {
-    fs.writeFileSync(cachePath, JSON.stringify(cache, null, 2));
-}
-
-// Path to inventory.json in userData (writable, persistent)
-const inventoryPath = path.join(app.getPath("userData"), "inventory.json");
-
-// Ensure inventory file exists
-function ensureInventoryFile() {
-    if (!fs.existsSync(inventoryPath)) {
-        fs.writeFileSync(inventoryPath, "[]");
-    }
-}
+//  THIS IS THE MAIN.JS UPDATE
+const { loadInventory, saveInventory, loadCache, saveCache } = require("./src-main/stores/inventoryStore");
+const { loadBuildTracker, saveBuildTracker } = require("./src-main/stores/buildTrackerStore");
+const { fetchWithRetry } = require("./src-main/httpClient");
+const {
+    loadRelicInventory,
+    addRelic,
+    updateRelicQuantity,
+    removeRelic,
+    updateRelicImage,
+    fetchRelicDropData,
+    refreshAllRelicData,
+} = require("./src-main/stores/relicStore");
 
 // ------------------------------
 // Cache for item tags
 // ------------------------------
-
-const cachePath = path.join(app.getPath("userData"), "itemCache.json");
 
 const farmCachePath = path.join(app.getPath("userData"), "farmDataCache.json");
 
@@ -138,21 +124,6 @@ async function fetchPriceHistory(slug) {
     }
 }
 
-//-----------------------------
-// Fetching Farm from WFCD API
-//-----------------------------
-
-async function fetchWithRetry(url, retries = 1) {
-    try {
-        return await axios.get(url);
-    } catch (err) {
-        if (retries > 0) {
-            await new Promise((r) => setTimeout(r, 1000)); // wait 1 second
-            return fetchWithRetry(url, retries - 1);
-        }
-        throw err;
-    }
-}
 
 // Fetch farm data for mods
 
@@ -260,39 +231,7 @@ async function resolveTierForItem(itemName, itemType, itemSet) {
     return match?.tier || null;
 }
 
-// Load inventory
-function loadInventory() {
-    ensureInventoryFile();
 
-    try {
-        const data = fs.readFileSync(inventoryPath, "utf8");
-        let inventory = JSON.parse(data);
-
-        // Backfill ONLY missing fields — never overwrite API metadata
-        for (const item of inventory) {
-            if (!item.type) item.type = "Misc";
-            if (!item.rarity) item.rarity = "Unknown";
-            if (item.vaulted === undefined) item.vaulted = false;
-
-            if (!item.set) {
-                const parts = item.name.split(" ");
-                item.set = parts.length > 1 ? parts[0] + " " + parts[1] : parts[0];
-            }
-
-            if (!item.lastUpdated) item.lastUpdated = Date.now();
-        }
-
-        saveInventory(inventory);
-        return inventory;
-    } catch {
-        return [];
-    }
-}
-
-// Save inventory
-function saveInventory(inventory) {
-    fs.writeFileSync(inventoryPath, JSON.stringify(inventory, null, 2));
-}
 
 // Recompute Rarity Tiers
 async function backfillTiers() {
@@ -593,203 +532,7 @@ function inferRarityFromTags(tags) {
     return "Unknown";
 }
 
-// ------------------------------
-// Build Tracker storage
-// ------------------------------
 
-const buildTrackerPath = path.join(app.getPath("userData"), "buildTracker.json");
-
-function ensureBuildTrackerFile() {
-    if (!fs.existsSync(buildTrackerPath)) {
-        fs.writeFileSync(buildTrackerPath, "[]");
-    }
-}
-
-function loadBuildTracker() {
-    ensureBuildTrackerFile();
-    try {
-        const data = fs.readFileSync(buildTrackerPath, "utf8");
-        return JSON.parse(data);
-    } catch {
-        return [];
-    }
-}
-
-function saveBuildTracker(list) {
-    fs.writeFileSync(buildTrackerPath, JSON.stringify(list, null, 2));
-}
-
-// ------------------------------
-// Relic Inventory storage
-// ------------------------------
-
-const relicInventoryPath = path.join(app.getPath("userData"), "relicInventory.json");
-
-function ensureRelicInventoryFile() {
-    if (!fs.existsSync(relicInventoryPath)) {
-        fs.writeFileSync(relicInventoryPath, "[]");
-    }
-}
-
-function loadRelicInventory() {
-    ensureRelicInventoryFile();
-    try {
-        const data = fs.readFileSync(relicInventoryPath, "utf8");
-        return JSON.parse(data);
-    } catch {
-        return [];
-    }
-}
-
-function saveRelicInventory(relics) {
-    fs.writeFileSync(relicInventoryPath, JSON.stringify(relics, null, 2));
-}
-
-// CRUD Functions for Relics
-
-function addRelic(name, imageName) {
-    let relics = loadRelicInventory();
-    const key = name.trim().toLowerCase();
-
-    let existing = relics.find((r) => r.name.trim().toLowerCase() === key);
-
-    if (existing) {
-        existing.quantity += 1;
-    } else {
-        relics.push({ name, imageName: imageName || null, quantity: 1 });
-    }
-
-    saveRelicInventory(relics);
-    return relics;
-}
-
-function updateRelicQuantity(name, newQuantity) {
-    let relics = loadRelicInventory();
-    const key = name.trim().toLowerCase();
-
-    const relic = relics.find((r) => r.name.trim().toLowerCase() === key);
-    if (relic) {
-        relic.quantity = Math.max(0, Number(newQuantity));
-        if (relic.quantity === 0) {
-            relics = relics.filter((r) => r.name.trim().toLowerCase() !== key);
-        }
-    }
-
-    saveRelicInventory(relics);
-    return relics;
-}
-
-function removeRelic(name) {
-    let relics = loadRelicInventory();
-    relics = relics.filter((r) => r.name.trim().toLowerCase() !== name.trim().toLowerCase());
-    saveRelicInventory(relics);
-    return relics;
-}
-
-function updateRelicImage(name, imageName) {
-    let relics = loadRelicInventory();
-    const key = name.trim().toLowerCase();
-
-    const relic = relics.find((r) => r.name.trim().toLowerCase() === key);
-    if (relic) {
-        relic.imageName = imageName;
-        saveRelicInventory(relics);
-    }
-
-    return relics;
-}
-
-// ------------------------------
-// Relic Drop Data storage (drops.warframestat.us)
-// ------------------------------
-
-const relicDropCachePath = path.join(app.getPath("userData"), "relicDropCache.json");
-
-function ensureRelicDropCacheFile() {
-    if (!fs.existsSync(relicDropCachePath)) {
-        const bundledPath = path.join(__dirname, "bundled-relic-cache.json");
-
-        if (fs.existsSync(bundledPath)) {
-            fs.copyFileSync(bundledPath, relicDropCachePath);
-            console.log("Seeded relic drop cache from bundled data.");
-        } else {
-            fs.writeFileSync(relicDropCachePath, "{}");
-        }
-    }
-}
-
-async function fetchRelicDropData(relicFullName) {
-    const cache = loadRelicDropCache();
-    const key = relicFullName.trim().toLowerCase();
-    const maxAge = 1000 * 60 * 60 * 24 * 14; // 14 days — drop tables rarely change
-
-    if (cache[key] && Date.now() - cache[key].fetchedAt < maxAge) {
-        return cache[key].data;
-    }
-
-    const parts = relicFullName.trim().split(" ");
-    if (parts.length !== 2) {
-        console.log("Unexpected relic name format:", relicFullName);
-        return null;
-    }
-    const [tier, name] = parts;
-
-    const url = `https://drops.warframestat.us/data/relics/${tier}/${name}.json`;
-
-    try {
-        const response = await fetchWithRetry(url);
-        const data = response.data;
-
-        cache[key] = { data, fetchedAt: Date.now() };
-        saveRelicDropCache(cache);
-        return data;
-    } catch (err) {
-        console.log("Relic drop data fetch failed for", relicFullName, err.message);
-        return cache[key]?.data || null;
-    }
-}
-
-function loadRelicDropCache() {
-    ensureRelicDropCacheFile();
-    return JSON.parse(fs.readFileSync(relicDropCachePath, "utf8"));
-}
-
-function saveRelicDropCache(cache) {
-    fs.writeFileSync(relicDropCachePath, JSON.stringify(cache, null, 2));
-}
-
-// manual relic cache refresh
-
-async function refreshAllRelicData() {
-    try {
-        const response = await fetchWithRetry("https://drops.warframestat.us/data/relics.json");
-        const relicsList = response.data.relics || response.data;
-
-        const cache = {};
-        let skipped = 0;
-
-        for (const entry of relicsList) {
-            if (!entry.tier || !entry.relicName) {
-                skipped++;
-                continue;
-            }
-
-            const key = `${entry.tier.toLowerCase()} ${entry.relicName.toLowerCase()}`;
-            if (!cache[key]) {
-                cache[key] = {
-                    data: { tier: entry.tier, name: entry.relicName, rewards: {} },
-                    fetchedAt: Date.now(),
-                };
-            }
-            cache[key].data.rewards[entry.state] = entry.rewards;
-        }
-
-        saveRelicDropCache(cache);
-        return { success: true, count: Object.keys(cache).length, skipped };
-    } catch (err) {
-        return { success: false, reason: err.message };
-    }
-}
 
 // ------------------------------
 // Relic Recommendation Engine

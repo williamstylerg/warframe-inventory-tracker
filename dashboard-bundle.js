@@ -1624,15 +1624,19 @@ ${result.path}`);
   });
   document.addEventListener("change", async (event) => {
     const target = event.target.closest("[data-action]");
-    if (!target) return;
-    const a = target.dataset;
-    if (a.action === "update-quantity") {
-      await updateQuantity(a.slug, target.value);
-    } else if (a.action === "toggle-component") {
-      target.blur();
-      const isPrime = a.prime === "true";
-      if (target.checked) await checkOffComponent(a.set, a.part, isPrime, a.category);
-      else await uncheckOffComponent(a.set, a.part, isPrime);
+    if (target) {
+      const a = target.dataset;
+      if (a.action === "update-quantity") {
+        await updateQuantity(a.slug, target.value);
+      } else if (a.action === "toggle-component") {
+        target.blur();
+        const isPrime = a.prime === "true";
+        if (target.checked) await checkOffComponent(a.set, a.part, isPrime, a.category);
+        else await uncheckOffComponent(a.set, a.part, isPrime);
+      }
+    }
+    if (event.target.id === "platPerDucatInput") {
+      await updatePlatPerDucat(event.target.value);
     }
   });
   document.addEventListener("input", (event) => {

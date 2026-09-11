@@ -54,15 +54,20 @@ document.addEventListener("click", async (event) => {
 
 document.addEventListener("change", async (event) => {
     const target = event.target.closest("[data-action]");
-    if (!target) return;
-    const a = target.dataset;
-    if (a.action === "update-quantity") {
-        await priceTracker.updateQuantity(a.slug, target.value);
-    } else if (a.action === "toggle-component") {
-        target.blur();
-        const isPrime = a.prime === "true";
-        if (target.checked) await buildTrackerMod.checkOffComponent(a.set, a.part, isPrime, a.category);
-        else await buildTrackerMod.uncheckOffComponent(a.set, a.part, isPrime);
+    if (target) {
+        const a = target.dataset;
+        if (a.action === "update-quantity") {
+            await priceTracker.updateQuantity(a.slug, target.value);
+        } else if (a.action === "toggle-component") {
+            target.blur();
+            const isPrime = a.prime === "true";
+            if (target.checked) await buildTrackerMod.checkOffComponent(a.set, a.part, isPrime, a.category);
+            else await buildTrackerMod.uncheckOffComponent(a.set, a.part, isPrime);
+        }
+    }
+
+    if (event.target.id === "platPerDucatInput") {
+        await priceTracker.updatePlatPerDucat(event.target.value);
     }
 });
 
