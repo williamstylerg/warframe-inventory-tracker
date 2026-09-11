@@ -5,10 +5,7 @@ const axios = require("axios");
 const { autoUpdater } = require("electron-updater");
 
 const {
-    summarizeDrops,
-    assignRarityTiers,
     normalizeName,
-    getEndpointForType,
 } = require("./farmLogic");
 
 app.setName("Warframe Inventory Tracker");
@@ -18,7 +15,6 @@ let mainWindow;
 //  THIS IS THE MAIN.JS UPDATE
 const { loadInventory, saveInventory, loadCache, saveCache } = require("./src-main/stores/inventoryStore");
 const { loadBuildTracker, saveBuildTracker } = require("./src-main/stores/buildTrackerStore");
-const { fetchWithRetry } = require("./src-main/httpClient");
 const {
     loadRelicInventory,
     addRelic,
@@ -31,38 +27,11 @@ const {
 const { loadPortfolioHistory, snapshotPortfolioValue } = require("./src-main/stores/portfolioStore");
 const { loadAppSettings, saveAppSettings } = require("./src-main/stores/appSettingsStore");
 const { exportBackup, importBackup, writeAutoBackup, restoreAutoBackup, exportInventoryCsv } = require("./src-main/services/backupService");
+const {
+    loadFarmCache, clearFarmCache, fetchFarmData, fetchModFarmData,
+    isTrackableComponentServer, resolveTierForItem, resolveDucatsForItem, backfillTiers,
+} = require("./src-main/services/farmDataService");
 
-// ------------------------------
-// Cache for item tags
-// ------------------------------
-
-const farmCachePath = path.join(app.getPath("userData"), "farmDataCache.json");
-
-function ensureFarmCacheFile() {
-    if (!fs.existsSync(farmCachePath)) {
-        fs.writeFileSync(farmCachePath, "{}");
-    }
-}
-
-function loadFarmCache() {
-    ensureFarmCacheFile();
-    return JSON.parse(fs.readFileSync(farmCachePath, "utf8"));
-}
-
-function saveFarmCache(cache) {
-    fs.writeFileSync(farmCachePath, JSON.stringify(cache, null, 2));
-}
-
-// dev tool for clearing cache
-
-async function clearFarmCache() {
-    try {
-        fs.writeFileSync(farmCachePath, "{}");
-        return { success: true };
-    } catch (err) {
-        return { success: false, reason: err.message };
-    }
-}
 
 //-----------------------------
 // Fetching Price History from Warframe.Market
@@ -125,134 +94,6 @@ async function fetchPriceHistory(slug) {
         console.log("Price history fetch failed for", slug, err.message);
         return cache[key]?.history || [];
     }
-}
-
-
-// Fetch farm data for mods
-
-async function fetchModFarmData(modName) {
-    const cache = loadFarmCache();
-    const key = "mod:" + modName.trim().toLowerCase();
-    const maxAge = 1000 * 60 * 60 * 24 * 14;
-
-    if (cache[key] && Date.now() - cache[key].fetchedAt < maxAge) {
-        return cache[key].drops;
-    }
-
-    const url = `https://api.warframestat.us/mods/search/${encodeURIComponent(modName)}`;
-
-    try {
-        const response = await fetchWithRetry(url);
-        const results = response.data;
-
-        const exactMatches = results.filter(
-            (r) => r.name.trim().toLowerCase() === modName.trim().toLowerCase(),
-        );
-        const matchesToUse = exactMatches.length > 0 ? exactMatches : results.slice(0, 1);
-
-        const allDrops = matchesToUse.flatMap((m) => m.drops || []);
-        const drops = summarizeDrops(allDrops);
-
-        cache[key] = { drops, fetchedAt: Date.now() };
-        saveFarmCache(cache);
-        return drops;
-    } catch (err) {
-        console.log("Mod farm data fetch failed for", modName, err.message);
-        return cache[key]?.drops || [];
-    }
-}
-
-// This calls the farm data from the com dev api
-
-async function fetchFarmData(setName, itemType) {
-    const cache = loadFarmCache();
-    const key = setName.trim().toLowerCase();
-    const maxAge = 1000 * 60 * 60 * 24 * 14; // 14 days
-
-    if (cache[key] && Date.now() - cache[key].fetchedAt < maxAge) {
-        return cache[key].components;
-    }
-
-    const endpoint = getEndpointForType(itemType);
-
-    if (!endpoint) {
-        return []; // no farm-data lookup available for this item type (Mod, Arcane, Relic, Resource, etc.)
-    }
-    const url = `https://api.warframestat.us/${endpoint}/search/${encodeURIComponent(setName)}`;
-
-    try {
-        const response = await fetchWithRetry(url);
-        const results = response.data;
-
-        const exactMatch = results.find(
-            (r) => r.name.trim().toLowerCase() === setName.trim().toLowerCase(),
-        );
-        const match = exactMatch || results[0];
-        const rawComponents = match?.components || [];
-        const components = assignRarityTiers(rawComponents);
-
-        cache[key] = {
-            components,
-            imageName: match?.imageName || null,
-            vaulted: match?.vaulted || false,
-            fetchedAt: Date.now(),
-        };
-        saveFarmCache(cache);
-        return components;
-    } catch (err) {
-        console.log("Farm data fetch failed for", setName, err.message);
-        return cache[key]?.components || [];
-    }
-}
-
-// rarity helper
-async function resolveTierForItem(itemName, itemType, itemSet) {
-    const isWarframeType = itemType.includes("Warframe");
-    const weaponTypes = [
-        "Weapon",
-        "Rifle",
-        "Pistol",
-        "Melee",
-        "Shotgun",
-        "Sentinel",
-        "Archwing",
-        "Arch-gun",
-        "Arch-melee",
-        "Secondary",
-        "Primary",
-    ];
-    const isWeaponType = weaponTypes.some((t) => itemType.includes(t));
-
-    if (!isWarframeType && !isWeaponType) return null;
-    if (itemName.trim().endsWith(" Set")) return null; // whole combined sets have no tier
-
-    const components = await fetchFarmData(itemSet, itemType);
-    let shortName = itemName.replace(itemSet, "").trim();
-    if (shortName === "") shortName = "Blueprint"; // name collapsed to just the set = this IS the Blueprint
-
-    const match = components.find((c) => c.name === shortName);
-    return match?.tier || null;
-}
-
-
-
-// Recompute Rarity Tiers
-async function backfillTiers() {
-    let inventory = loadInventory();
-    let updated = 0;
-
-    for (const item of inventory) {
-        if (!["Warframe Part", "Weapon Part"].includes(item.type)) continue;
-
-        const tier = await resolveTierForItem(item.name, item.type, item.set);
-        if (tier !== item.tier) {
-            item.tier = tier;
-            updated++;
-        }
-    }
-
-    saveInventory(inventory);
-    return { success: true, updated, total: inventory.length };
 }
 
 
@@ -444,13 +285,6 @@ function inferRarityFromTags(tags) {
 // Relic Recommendation Engine
 // ------------------------------
 
-function isTrackableComponentServer(component, itemType) {
-    if (itemType === "Warframe Part" || itemType.includes("Warframe")) {
-        return ["Blueprint", "Chassis", "Neuroptics", "Systems"].includes(component.name);
-    }
-    return component.drops && component.drops.length > 0;
-}
-
 async function getRelicRecommendations() {
     const relics = loadRelicInventory();
     const buildTracker = loadBuildTracker();
@@ -513,21 +347,6 @@ async function getRelicRecommendations() {
     return recommendations;
 }
 
-
-//--------------------------
-// App Settings Handler for Plat/Ducat details
-//--------------------------
-
-async function resolveDucatsForItem(itemName, itemType, itemSet) {
-    if (!itemType.includes("Warframe") && !itemType.includes("Weapon")) return null;
-
-    const components = await fetchFarmData(itemSet, itemType);
-    let shortName = itemName.replace(itemSet, "").trim();
-    if (shortName === "") shortName = "Blueprint";
-
-    const match = components.find((c) => c.name === shortName);
-    return match?.ducats ?? null;
-}
 
 // backfill for ducats
 async function backfillDucats() {

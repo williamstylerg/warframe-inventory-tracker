@@ -217,7 +217,7 @@
     if (wfcdCategory === "Mods" || wfcdType === "Mod") return "Mod";
     if (wfcdCategory === "Arcanes") return "Arcane";
     if (wfcdCategory === "Relics") return "Relic";
-    if (["Rifle", "Pistol", "Melee", "Shotgun", "Sentinel Weapon", "Archwing", "Archgun", "Archmelee"].includes(wfcdType)) return "Weapon Part";
+    if (["Rifle", "Pistol", "Melee", "Shotgun", "Sentinel Weapon", "Archwing", "Arch-Gun", "Arch-Melee"].includes(wfcdType)) return "Weapon Part";
     return "Misc";
   }
   function setBuildTrackerFilter(filter) {
