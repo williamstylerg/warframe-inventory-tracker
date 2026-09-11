@@ -1,7 +1,5 @@
 const { app, BrowserWindow, ipcMain, dialog } = require("electron");
 const path = require("path");
-const fs = require("fs");
-const axios = require("axios");
 const { autoUpdater } = require("electron-updater");
 
 const {
@@ -13,7 +11,7 @@ app.setName("Warframe Inventory Tracker");
 let mainWindow;
 
 //  THIS IS THE MAIN.JS UPDATE
-const { loadInventory, saveInventory, loadCache, saveCache } = require("./src-main/stores/inventoryStore");
+const { loadInventory, saveInventory, } = require("./src-main/stores/inventoryStore");
 const { loadBuildTracker, saveBuildTracker } = require("./src-main/stores/buildTrackerStore");
 const {
     loadRelicInventory,
@@ -31,70 +29,7 @@ const {
     loadFarmCache, clearFarmCache, fetchFarmData, fetchModFarmData,
     isTrackableComponentServer, resolveTierForItem, resolveDucatsForItem, backfillTiers,
 } = require("./src-main/services/farmDataService");
-
-
-//-----------------------------
-// Fetching Price History from Warframe.Market
-//-----------------------------
-
-const priceHistoryCachePath = path.join(app.getPath("userData"), "priceHistoryCache.json");
-
-function ensurePriceHistoryCacheFile() {
-    if (!fs.existsSync(priceHistoryCachePath)) {
-        fs.writeFileSync(priceHistoryCachePath, "{}");
-    }
-}
-
-function loadPriceHistoryCache() {
-    ensurePriceHistoryCacheFile();
-    return JSON.parse(fs.readFileSync(priceHistoryCachePath, "utf8"));
-}
-
-function savePriceHistoryCache(cache) {
-    fs.writeFileSync(priceHistoryCachePath, JSON.stringify(cache, null, 2));
-}
-
-async function fetchPriceHistory(slug) {
-    const cache = loadPriceHistoryCache();
-    const key = slug.trim().toLowerCase();
-    const maxAge = 1000 * 60 * 60 * 12; // 12 hours — this data updates daily server-side, no need to refetch constantly
-
-    if (cache[key] && Date.now() - cache[key].fetchedAt < maxAge) {
-        return cache[key].history;
-    }
-
-    const url = `https://api.warframe.market/v1/items/${slug}/statistics?include=item`;
-
-    try {
-        const response = await axios.get(url, {
-            headers: {
-                "User-Agent": "Mozilla/5.0",
-                Accept: "application/json",
-                Platform: "pc",
-                Language: "en",
-                Crossplay: "true",
-                Referer: "https://warframe.market/",
-            },
-        });
-        const days90 = response.data?.payload?.statistics_closed?.["90days"] || [];
-
-        const history = days90.map((day) => ({
-            date: day.datetime,
-            movingAvg: day.moving_avg,
-            median: day.median,
-            minPrice: day.min_price,
-            maxPrice: day.max_price,
-            volume: day.volume,
-        }));
-
-        cache[key] = { history, fetchedAt: Date.now() };
-        savePriceHistoryCache(cache);
-        return history;
-    } catch (err) {
-        console.log("Price history fetch failed for", slug, err.message);
-        return cache[key]?.history || [];
-    }
-}
+const { fetchItemDetails, fetchPriceForSlug, fetchPriceHistory } = require("./src-main/services/priceService");
 
 
 // Auto backup & snapshot price on app close
@@ -193,72 +128,7 @@ function createWindow() {
     mainWindow.loadFile("dashboard.html");
 }
 
-// Fetch price from Warframe Market v2 orders endpoint
-async function fetchPriceForSlug(slug) {
-    try {
-        const url = `https://api.warframe.market/v2/orders/item/${slug}/top`;
 
-        const response = await axios.get(url, {
-            headers: {
-                "User-Agent": "Mozilla/5.0",
-                Accept: "application/json",
-                Platform: "pc",
-                Language: "en",
-                Crossplay: "true",
-            },
-        });
-
-        const json = response.data;
-
-        if (!json.data || !json.data.sell || json.data.sell.length === 0) {
-            return 0;
-        }
-
-        const sellOrders = json.data.sell
-            .filter((o) => o.visible)
-            .sort((a, b) => a.platinum - b.platinum);
-
-        return sellOrders.length ? sellOrders[0].platinum : 0;
-    } catch (err) {
-        console.log("Price fetch failed for", slug, err.message);
-        return 0;
-    }
-}
-
-// Fetch item details (tags)
-async function fetchItemDetails(slug) {
-    const cache = loadCache();
-
-    // If cached, return immediately
-    if (cache[slug]) {
-        return cache[slug];
-    }
-
-    // Otherwise fetch from API
-    try {
-        const url = `https://api.warframe.market/v2/items/${slug}`;
-        const response = await axios.get(url, {
-            headers: {
-                "User-Agent": "Mozilla/5.0",
-                Accept: "application/json",
-                Platform: "pc",
-                Language: "en",
-                Crossplay: "true",
-            },
-        });
-
-        const tags = response.data?.data?.tags || [];
-
-        // Save to cache
-        cache[slug] = tags;
-        saveCache(cache);
-
-        return tags;
-    } catch (err) {
-        console.log("Item details fetch failed for", slug, err.message);
-        return [];
-    }
-}
 
 // Infer type from tags
 function inferTypeFromTags(tags) {
