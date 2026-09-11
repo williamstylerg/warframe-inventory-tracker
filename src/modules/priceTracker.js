@@ -81,7 +81,7 @@ export function renderTable(rows) {
 
         html += `
         <tr class="${rowClass}">
-            <td class="item-name" data-action="show-farm-info" data-item='${JSON.stringify(item)}'>${item.name}</td>
+            <td class="item-name" data-action="show-farm-info" data-item='${JSON.stringify(item).replace(/'/g, "&#39;")}'>${item.name}</td>
             <td>${getDisplayType(item)}</td>
             <td>${getDisplayRarity(item)}</td>
             <td>${item.vaulted ? "Yes" : "No"}</td>

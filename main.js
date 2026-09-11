@@ -47,21 +47,6 @@ function ensureInventoryFile() {
 
 const cachePath = path.join(app.getPath("userData"), "itemCache.json");
 
-function ensureCacheFile() {
-    if (!fs.existsSync(cachePath)) {
-        fs.writeFileSync(cachePath, "{}");
-    }
-}
-
-function loadCache() {
-    ensureCacheFile();
-    return JSON.parse(fs.readFileSync(cachePath, "utf8"));
-}
-
-function saveCache(cache) {
-    fs.writeFileSync(cachePath, JSON.stringify(cache, null, 2));
-}
-
 const farmCachePath = path.join(app.getPath("userData"), "farmDataCache.json");
 
 function ensureFarmCacheFile() {
@@ -243,41 +228,6 @@ async function fetchFarmData(setName, itemType) {
     } catch (err) {
         console.log("Farm data fetch failed for", setName, err.message);
         return cache[key]?.components || [];
-    }
-}
-
-// This calls the mods
-async function fetchModFarmData(modName) {
-    const cache = loadFarmCache();
-    const key = "mod:" + modName.trim().toLowerCase();
-    const maxAge = 1000 * 60 * 60 * 24 * 14;
-
-    if (cache[key] && Date.now() - cache[key].fetchedAt < maxAge) {
-        return cache[key].drops;
-    }
-
-    const url = `https://api.warframestat.us/mods/search/${encodeURIComponent(modName)}`;
-
-    try {
-        const response = await axios.get(url);
-        const results = response.data;
-
-        // Mods can have multiple entries with the exact same name (mastery-rank drain tiers)
-        // Combine drops across all exact matches rather than picking just one
-        const exactMatches = results.filter(
-            (r) => r.name.trim().toLowerCase() === modName.trim().toLowerCase(),
-        );
-        const matchesToUse = exactMatches.length > 0 ? exactMatches : results.slice(0, 1);
-
-        const allDrops = matchesToUse.flatMap((m) => m.drops || []);
-        const drops = summarizeDrops(allDrops);
-
-        cache[key] = { drops, fetchedAt: Date.now() };
-        saveFarmCache(cache);
-        return drops;
-    } catch (err) {
-        console.log("Mod farm data fetch failed for", modName, err.message);
-        return cache[key]?.drops || [];
     }
 }
 
